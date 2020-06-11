@@ -1,0 +1,18 @@
+#include "common.fxh"
+
+Texture2D    g_ShadowMap;
+SamplerState g_ShadowMap_sampler; // By convention, texture samplers must use the '_sampler' suffix
+
+struct DebugPSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+void main(
+	in  DebugPSInput  PSIn,
+    out DebugPSOutput PSOut
+)
+{
+    PSOut.Color.rgb = float3(1.0, 1.0, 1.0) * g_ShadowMap.Sample(g_ShadowMap_sampler, PSIn.UV).r;
+    PSOut.Color.a   = 1.0;
+}
