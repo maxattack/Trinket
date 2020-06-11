@@ -1,6 +1,7 @@
 .vs
 Libs
 x64
-Trinket*
+*.sln
+*.vcxproj*
 Source/imgui*
 
