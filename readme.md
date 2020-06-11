@@ -11,7 +11,7 @@ This repository contains my original source, but I haven't included any prebuilt
 ## Dependencies
 
 - SDL2 - platform abstraction
-- Diligent Engine - low-level graphics backend abstraction/validation, shader cross-compile, 
+- Diligent Engine - low-level graphics backend abstraction/validation, shader cross-compile
 - GLM - math library with SIMD intrinsics
 - PhysX - collision and dynamics
 - lua - runtime configuration, scripting
