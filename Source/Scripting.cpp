@@ -224,13 +224,13 @@ static int l_create_cube_mesh(lua_State* lua) {
 	let name = luaL_checkstring(lua, 1);
 	let extent = (float) luaL_checknumber(lua, 2);
 	let mesh = gfx->CreateMesh(name);
-	mesh->GetSubmesh(0)->AllocCube(extent);
-	for (auto& it : *mesh->GetSubmesh(0)) {
+	mesh->GetSubmesh(0).AllocCube(extent);
+	for (auto& it : mesh->GetSubmesh(0)) {
 		let hue = float(rand() % 360);
 		it.color = vec4(glm::rgbColor(vec3(hue, 1.f, 1.f)), 1.f);
 	}
-	mesh->GetSubmesh(0)->TryLoad(gfx);
-	mesh->GetSubmesh(0)->Dealloc();
+	mesh->GetSubmesh(0).TryLoad(gfx);
+	mesh->GetSubmesh(0).Dealloc();
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, mesh->ID());
 	return 1;
 }
@@ -240,12 +240,12 @@ static int l_create_plane_mesh(lua_State* lua) {
 	let name = luaL_checkstring(lua, 1);
 	let extent = (float) luaL_checknumber(lua, 2);
 	let plane = gfx->CreateMesh(name);
-	plane->GetSubmesh(0)->AllocPlaneXY(extent);
-	for(auto& it : *plane->GetSubmesh(0)) {
+	plane->GetSubmesh(0).AllocPlaneXY(extent);
+	for(auto& it : plane->GetSubmesh(0)) {
 		it.color = vec4(0.5f, 0.5f, 0.75f, 1.f);
 	}
-	plane->GetSubmesh(0)->TryLoad(gfx);
-	plane->GetSubmesh(0)->Dealloc();
+	plane->GetSubmesh(0).TryLoad(gfx);
+	plane->GetSubmesh(0).Dealloc();
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, plane->ID());
 	return 1;
 }

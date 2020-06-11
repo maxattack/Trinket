@@ -71,5 +71,5 @@ public:
 	
 	// more of an aspirational interface, here, lol
 	int GetSubmeshCount() const { return 1; }
-	SubMesh* GetSubmesh(int idx) { return &defaultSubmesh; }
+	SubMesh& GetSubmesh(int idx) { return defaultSubmesh; }
 };

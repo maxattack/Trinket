@@ -344,7 +344,7 @@ void Graphics::Draw() {
 					MapHelper<RenderConstants> CBConstants(pContext, pRenderConstants, MAP_WRITE, MAP_FLAG_DISCARD);
 					CBConstants->ModelViewProjectionTransform = worldToLightProjSpace * matrices[it];
 				}
-				item.pMesh->GetSubmesh(item.submeshIdx)->DoDraw(this);
+				item.pMesh->GetSubmesh(item.submeshIdx).DoDraw(this);
 			}
 		}
 	}
@@ -378,7 +378,7 @@ void Graphics::Draw() {
 					CBConstants->WorldToShadowMapUVDepth = worldToShadowMapUVDepth;
 					CBConstants->LightDirection = vec4(lightz, 0);
 			}
-			item.pMesh->GetSubmesh(item.submeshIdx)->DoDraw(this);
+			item.pMesh->GetSubmesh(item.submeshIdx).DoDraw(this);
 		}
 		itemIdx += pass.itemCount;
 	}
