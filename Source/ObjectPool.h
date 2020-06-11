@@ -3,8 +3,6 @@
 #include <EASTL/bonus/tuple_vector.h>
 #include <EASTL/vector.h>
 
-// TODO: If any ObjectPool Component Subtypes ObjectComponent automatically FreeObject() it?
-
 union SparsePage {
 	int32 items[OBJ_INDICES_PER_PAGE];
 	SparsePage* pNext; // unused pages form a freelist
