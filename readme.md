@@ -4,7 +4,7 @@ Yet another personal hobby game engine.
 
 [Informal Twitter Devlog](https://twitter.com/xewlupus/status/1266125978939473921)
 
-Mostly an experiment in my own answer to entity-component sytem design. Different systems do their own natural bookkeeping, and are "glued together" with a sparseset data structure to represent opaque ObjectIDs mapped to different linears arrays with a lookup cost no worse than chasing two pointers.
+Mostly an experiment in my own answer to entity-component sytem design. Different systems do their own natural bookkeeping, and are "glued together" with a sparseset data structure that maps ObjectIDs to linears arrays with a lookup cost no worse than chasing two pointers.
 
 This repository contains my original source, but I haven't included any prebuilt dependencies or gunky build scripts because I don't have the bandwidth to support them publicly, and didn't want to clutter up the commit history with infrastructure noise.
 
