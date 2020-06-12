@@ -16,6 +16,7 @@ This repository contains my original source, but I haven't included any prebuilt
 - PhysX - collision and dynamics
 - lua - runtime configuration, scripting
 - EASTL - performance-conscious container templates
+- Dear IMGUI - editor ui rapid development
 
 ## License
 
