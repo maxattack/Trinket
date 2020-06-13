@@ -220,7 +220,7 @@ static int l_create_material(lua_State* lua) {
 
 	if (lua_gettop(lua) > 1) {
 		let textureName = luaL_checkstring(lua, 2);
-		let textureFile = "Assets/" + eastl::string(textureName) + ".png";
+		let textureFile = "Assets/" + eastl::string(textureName) + ".psd";
 
 		TextureArg targ;
 		targ.variableName = "g_Texture";
@@ -272,9 +272,6 @@ static int l_create_plane_mesh(lua_State* lua) {
 	let extent = (float) luaL_checknumber(lua, 2);
 	let plane = gfx->CreateMesh(name);
 	plane->GetSubmesh(0).AllocPlaneXY(extent);
-	for(auto& it : plane->GetSubmesh(0)) {
-		it.color = vec4(0.5f, 0.5f, 0.75f, 1.f);
-	}
 	plane->GetSubmesh(0).TryLoad(gfx);
 	plane->GetSubmesh(0).Dealloc();
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, plane->ID());

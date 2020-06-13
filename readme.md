@@ -17,6 +17,7 @@ This repository contains my original source, but I haven't included any prebuilt
 - lua - runtime configuration, scripting
 - EASTL - performance-conscious container templates
 - Dear IMGUI - editor ui rapid development
+- STB - misc utilities
 
 ## License
 

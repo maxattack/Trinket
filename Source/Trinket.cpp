@@ -10,6 +10,9 @@
 #include "DiligentTools/ImGui/interface/ImGuiUtils.hpp"
 #include "imgui_impl_sdl.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 int main(int argc, char** argv) {
     using namespace std;
 

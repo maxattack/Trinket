@@ -5,7 +5,7 @@ trinket.log "Hello..."
 
 local mat_checkboard = trinket.create_material("textured", "checkerboard")
 local mat_surface = trinket.create_material("surface")
-local mesh_plane = trinket.create_plane_mesh("plane", 5)
+local mesh_plane = trinket.create_plane_mesh("plane", 4)
 local mesh_box = trinket.create_cube_mesh("cube", 0.25)
 
 -- create floor mesh
