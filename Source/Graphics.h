@@ -44,6 +44,8 @@ public:
 	void HandleEvent(const SDL_Event& aEvent);
 	void Draw();
 
+	SDL_Window* GetWindow() { return pWindow; }
+
 	IRenderDevice* GetDevice() { return pDevice; }
 	IDeviceContext* GetContext() { return pContext; }
 	ISwapChain* GetSwapChain() { return pSwapChain; }
