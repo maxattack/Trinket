@@ -1,3 +1,6 @@
+// Trinket Game Engine
+// (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
+
 #include "Graphics.h"
 #include "DiligentCore/Graphics/GraphicsEngineD3D12/interface/EngineFactoryD3D12.h"
 #include "DiligentCore/Graphics/GraphicsTools/interface/MapHelper.hpp"

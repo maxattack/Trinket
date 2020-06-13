@@ -1,3 +1,6 @@
+// Trinket Game Engine
+// (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
+
 #include "Name.h"
 #include <EASTL/functional.h>
 #include <EASTL/hash_map.h>

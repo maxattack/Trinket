@@ -1,3 +1,6 @@
+// Trinket Game Engine
+// (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
+
 #include "Skeleton.h"
 
 SkeletonRegistry::SkeletonRegistry(AssetDatabase* aAssets, World* aWorld) 

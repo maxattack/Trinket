@@ -1,3 +1,6 @@
+// Trinket Game Engine
+// (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
+
 #pragma once
 #include "Common.h"
 #include <EASTL/string.h>

@@ -1,3 +1,6 @@
+// Trinket Game Engine
+// (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
+
 #pragma once
 #include "Object.h"
 #include <EASTL/bonus/tuple_vector.h>

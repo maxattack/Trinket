@@ -1,3 +1,6 @@
+// Trinket Game Engine
+// (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
+
 #include "ObjectPool.h"
 
 static_assert(sizeof(ObjectID) == 4);

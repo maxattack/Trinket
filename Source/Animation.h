@@ -1,7 +1,8 @@
+// Trinket Game Engine
+// (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
+
 #pragma once
 #include "Skeleton.h"
-
-
 
 // Rigs are attached to SkelAssets to associate
 // animation data and IK controllers with them.
