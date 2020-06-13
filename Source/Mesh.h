@@ -1,5 +1,5 @@
 #pragma once
-#include "Diligent.h"
+#include "GraphicsPlatform.h"
 #include "Object.h"
 
 struct MeshVertex {

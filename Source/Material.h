@@ -1,7 +1,7 @@
 #pragma once
 #include "Name.h"
 #include "Object.h"
-#include "Diligent.h"
+#include "GraphicsPlatform.h"
 #include <eastl/string.h>
 
 struct TextureArg {

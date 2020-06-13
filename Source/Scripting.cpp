@@ -224,7 +224,10 @@ static int l_create_material(lua_State* lua) {
 
 		TextureArg targ;
 		targ.variableName = "g_Texture";
-		targ.pTexture = gfx->CreateTexture(textureName, textureFile.c_str());
+		targ.pTexture = gfx->CreateTexture(textureName);
+		targ.pTexture->AllocFile(textureFile.c_str());
+		targ.pTexture->TryLoad(gfx);
+		targ.pTexture->Dealloc();
 
 		MaterialArgs args;
 		args.vertexShaderFile = vertexFile.c_str();

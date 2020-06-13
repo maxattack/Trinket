@@ -40,7 +40,7 @@ for idx,name in ipairs(names) do
 	trinket.attach_boxcollider_to(obj, 0.25, 1.0)
 end
 
-trinket.set_light_direction(0.333, -1, 0.333)
+trinket.set_light_direction(0.5, -1, 0.5)
 trinket.set_pov_position(0, 4, -8)
 -- trinket.set_time_dilation(0.5)
 

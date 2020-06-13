@@ -67,7 +67,7 @@ public:
 	Material* CreateMaterial(Name name, const MaterialArgs& Args);
 	Material* GetMaterial(ObjectID assetID) { return DerefPP(materialAssets.TryGetComponent<C_MATERIAL_ASSET>(assetID)); }
 
-	Texture* CreateTexture(Name name, const char* filePath);
+	Texture* CreateTexture(Name name);
 	Texture* GetTexture(ObjectID assetID) { return DerefPP(textureAssets.TryGetComponent<C_TEXTURE_ASSET>(assetID)); }
 
 	Mesh* CreateMesh(Name name);

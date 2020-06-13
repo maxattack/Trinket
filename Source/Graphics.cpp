@@ -203,11 +203,10 @@ Material* Graphics::CreateMaterial(Name name, const MaterialArgs& Args) {
 	return result;
 }
 
-Texture* Graphics::CreateTexture(Name name, const char* filePath) {
+Texture* Graphics::CreateTexture(Name name) {
 	let id = pAssets->CreateObject(name);
 	let result = NewObjectComponent<Texture>(id);
 	textureAssets.TryAppendObject(id, result);
-	result->TryLoad(this, filePath);
 	return result;
 }
 
