@@ -42,7 +42,9 @@ int main(int argc, char** argv) {
 	static Input input;
 	static Physics phys(&db, &world);
 	static Graphics gfx(&db, &world, window);
+	#if TRINKET_EDITOR
 	static Editor editor(&db, &world, &phys, &gfx);
+	#endif
 	static ScriptVM vm(&db, &world, &input, &gfx, &phys);
 
 	// init
@@ -60,13 +62,17 @@ int main(int argc, char** argv) {
 				done = true;
 			input.HandleEvent(event);
 			gfx.HandleEvent(event);
+			#if TRINKET_EDITOR
 			editor.HandleEvent(event);
-		
+			#endif
+	
 		}
 
 		// update
 		input.Update();
+		#if TRINKET_EDITOR
 		editor.Update();
+		#endif
 		if (input.GetDeltaTicks() > 0) {
 			vm.Tick();
 			phys.Tick(input.GetDeltaTime());
@@ -74,7 +80,10 @@ int main(int argc, char** argv) {
 
 		// draw
 		gfx.Draw();
+		#if TRINKET_EDITOR
 		editor.Draw();
+		#endif
+
 		bool vsync = true;
 		gfx.GetSwapChain()->Present(vsync ? 1 : 0);
 	}
