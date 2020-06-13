@@ -27,7 +27,7 @@ void GraphicsDebugMessageCallback(
 }
 
 
-Graphics::Graphics(SkeletonRegistry* aSkel, SDL_Window* aWindow) 
+Graphics::Graphics(SkelRegistry* aSkel, SDL_Window* aWindow) 
 	: pSkel(aSkel)
 	, pAssets(aSkel->GetAssets())
 	, pWorld(aSkel->GetWorld())
@@ -79,11 +79,11 @@ void Graphics::World_WillReleaseObject(World* caller, ObjectID id) {
 	// TODO
 }
 
-void Graphics::Skeleton_WillReleaseSkeleton(class SkeletonRegistry* Caller, ObjectID id) {
+void Graphics::Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) {
 	// TODO
 }
 
-void Graphics::Skeleton_WillReleaseSkelAsset(class SkeletonRegistry* Caller, ObjectID id) {
+void Graphics::Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) {
 	// TODO
 }
 

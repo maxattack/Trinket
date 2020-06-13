@@ -3,7 +3,7 @@
 
 #include "Animation.h"
 
-AnimationRuntime::AnimationRuntime(SkeletonRegistry* aRegistry)
+AnimationRuntime::AnimationRuntime(SkelRegistry* aRegistry)
 	: pRegistry(aRegistry)
 {
 	pRegistry->AddListener(this);
@@ -32,10 +32,10 @@ Animator* AnimationRuntime::AttachAnimatorTo(CharacterRig* rig, Skeleton* skelet
 	return result;
 }
 
-void AnimationRuntime::Skeleton_WillReleaseSkeleton(class SkeletonRegistry* Caller, ObjectID id) {
+void AnimationRuntime::Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) {
 	animators.TryReleaseObject_Swap(id);
 }
 
-void AnimationRuntime::Skeleton_WillReleaseSkelAsset(class SkeletonRegistry* Caller, ObjectID id) {
+void AnimationRuntime::Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) {
 	rigs.TryReleaseObject_Swap(id);
 }

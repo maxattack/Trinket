@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
 	static AssetDatabase db;
 	static World world;
 	static Input input;
-	static SkeletonRegistry skel(&db, &world);
+	static SkelRegistry skel(&db, &world);
 	static Physics phys(&db, &world);
 	static AnimationRuntime anim(&skel);
 	static Graphics gfx(&skel, window);

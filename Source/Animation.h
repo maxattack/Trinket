@@ -44,10 +44,10 @@ private:
 };
 
 // Animation runtime is the root of the animation system.
-class AnimationRuntime : ISkeletonRegistryListener {
+class AnimationRuntime : ISkelRegistryListener {
 public:
 
-	AnimationRuntime(SkeletonRegistry* aRegistry);
+	AnimationRuntime(SkelRegistry* aRegistry);
 	~AnimationRuntime();
 
 	AssetDatabase* GetAssets() const { return pRegistry->GetAssets(); }
@@ -59,12 +59,12 @@ public:
 
 private:
 
-	SkeletonRegistry* pRegistry;
+	SkelRegistry* pRegistry;
 	ObjectPool<CharacterRig*> rigs;
 	ObjectPool<Animator*> animators;
 
-	void Skeleton_WillReleaseSkeleton(class SkeletonRegistry* Caller, ObjectID id) override;
-	void Skeleton_WillReleaseSkelAsset(class SkeletonRegistry* Caller, ObjectID id) override;
+	void Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) override;
+	void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) override;
 
 };
 

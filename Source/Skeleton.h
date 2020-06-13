@@ -40,24 +40,24 @@ private:
 
 };
 
-class ISkeletonRegistryListener {
+class ISkelRegistryListener {
 public:
 
-	virtual void Skeleton_WillReleaseSkeleton(class SkeletonRegistry* Caller, ObjectID id) = 0;
-	virtual void Skeleton_WillReleaseSkelAsset(class SkeletonRegistry* Caller, ObjectID id) = 0;
+	virtual void Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) = 0;
+	virtual void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) = 0;
 };
 
-class SkeletonRegistry : IAssetListener, IWorldListener {
+class SkelRegistry : IAssetListener, IWorldListener {
 public:
 
-	SkeletonRegistry(AssetDatabase* aAssets, World* aWorld);
-	~SkeletonRegistry();
+	SkelRegistry(AssetDatabase* aAssets, World* aWorld);
+	~SkelRegistry();
 
 	AssetDatabase* GetAssets() const { return pAssets; }
 	World* GetWorld() const { return pWorld; }
 
-	void AddListener(ISkeletonRegistryListener* listener) { listeners.TryAdd(listener); }
-	void RemoveListener(ISkeletonRegistryListener* listener) { listeners.TryRemove_Swap(listener); }
+	void AddListener(ISkelRegistryListener* listener) { listeners.TryAdd(listener); }
+	void RemoveListener(ISkelRegistryListener* listener) { listeners.TryRemove_Swap(listener); }
 
 	SkelAsset* CreateSkeletonAsset(Name name);
 	SkelAsset* GetSkeletonAsset(ObjectID id);
@@ -65,14 +65,15 @@ public:
 	Skeleton* AttachSkeletonTo(ObjectID id, SkelAsset* skel);
 	Skeleton* GetSkeletonFor(ObjectID id);
 
-	bool TryAttachSocketTo(ObjectID id, Skeleton* skel, int16 jointIdx, const HPose& pose);
+	// Sockets 'socket' a scene object to a skeletal joint, e.g. a prop-bone
+	bool TryAttachSocketTo(ObjectID id, Skeleton* skel, int16 jointIdx, const HPose& relativePose);
 	bool TryReleaseScoket(ObjectID id);
 
 	void Update();
 
 private:
 
-	ListenerList<ISkeletonRegistryListener> listeners;
+	ListenerList<ISkelRegistryListener> listeners;
 	AssetDatabase* pAssets;
 	World* pWorld;
 

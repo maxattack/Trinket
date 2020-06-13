@@ -36,17 +36,17 @@ struct RenderConstants {
 	vec4 LightDirection;
 };
 
-class Graphics : IAssetListener, IWorldListener, ISkeletonRegistryListener {
+class Graphics : IAssetListener, IWorldListener, ISkelRegistryListener {
 public:
 
-	Graphics(SkeletonRegistry* pSkel, SDL_Window* aWindow);
+	Graphics(SkelRegistry* pSkel, SDL_Window* aWindow);
 	~Graphics();
 
 	void InitSceneRenderer();
 	void HandleEvent(const SDL_Event& aEvent);
 	void Draw();
 
-	SkeletonRegistry* GetSkeletonRegistory() const { return pSkel; }
+	SkelRegistry* GetSkelRegistry() const { return pSkel; }
 	AssetDatabase* GetAssets() const { return pAssets; }
 	World* GetWorld() const { return pWorld; }
 
@@ -87,11 +87,11 @@ private:
 
 	void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override;
 	void World_WillReleaseObject(World* caller, ObjectID id) override;
-	void Skeleton_WillReleaseSkeleton(class SkeletonRegistry* Caller, ObjectID id) override;
-	void Skeleton_WillReleaseSkelAsset(class SkeletonRegistry* Caller, ObjectID id) override;
+	void Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) override;
+	void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) override;
 
 
-	SkeletonRegistry* pSkel;
+	SkelRegistry* pSkel;
 	AssetDatabase* pAssets;
 	World* pWorld;
 
