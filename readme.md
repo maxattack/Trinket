@@ -4,17 +4,19 @@ Yet another personal hobby game engine.
 
 [Informal Twitter Devlog](https://twitter.com/xewlupus/status/1266125978939473921)
 
-Mostly an experiment in my own answer to entity-component sytem design. Different systems do their own natural bookkeeping, and are "glued together" with a sparseset data structure that maps ObjectIDs to linears arrays with a lookup cost no worse than chasing two pointers.
+My goal is to make mod-able games that give players access to the level editor, which is not possible with popular commercial engines like Unity or Unreal.
 
-This repository contains my original source, but I haven't included any prebuilt dependencies or gunky build scripts because I don't have the bandwidth to support them publicly, and didn't want to clutter up the commit history with infrastructure noise.
+Towards that goal, the architecture implements a light-weight entitiy-component system.  Different systems or 3rd-party libraries do their own natural bookkeeping, and are "glued together" with a sparseset data structure that maps ObjectIDs to linears arrays with a lookup-cost no worse than chasing two pointers.
+
+This public repository contains my original source, but I haven't included any prebuilt dependencies or gunky build scripts because I don't have the bandwidth to support them, and didn't want to clutter up the commit history with infrastructure noise.
 
 ## Dependencies
 
 - SDL2 - platform abstraction
-- Diligent Engine - low-level graphics backend abstraction/validation, shader cross-compile
+- Diligent Graphics - low-level rendering-backend abstraction/validation, shader cross-compile
 - GLM - math library with SIMD intrinsics
 - PhysX - collision and dynamics
-- lua - runtime configuration, scripting
+- Lua - runtime configuration, scripting
 - EASTL - performance-conscious container templates
 - Dear IMGUI - editor ui rapid development
 - STB - misc utilities

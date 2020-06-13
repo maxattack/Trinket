@@ -42,10 +42,10 @@ int main(int argc, char** argv) {
 	static Input input;
 	static Physics phys(&db, &world);
 	static Graphics gfx(&db, &world, window);
+	static ScriptVM vm(&db, &world, &input, &gfx, &phys);
 	#if TRINKET_EDITOR
 	static Editor editor(&db, &world, &phys, &gfx);
 	#endif
-	static ScriptVM vm(&db, &world, &input, &gfx, &phys);
 
 	// init
 	gfx.InitSceneRenderer();

@@ -1,4 +1,5 @@
 #include "Editor.h"
+
 #if TRINKET_EDITOR
 
 #include "Assets.h"

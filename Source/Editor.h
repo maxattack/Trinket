@@ -1,6 +1,6 @@
 #pragma once
-#include "Common.h"
 
+#include "Common.h"
 #if TRINKET_EDITOR
 
 #include <SDL.h>
