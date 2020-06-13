@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.h"
 #include <EASTL/vector.h>
+#include <algorithm>
 
 // TODO: make a better "iterator" which accounts for events being added/removed mid-iteration
 

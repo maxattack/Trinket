@@ -1,6 +1,9 @@
 #pragma once
 #include "Common.h"
 
+#include <SDL.h>
+#include <SDL_syswm.h>
+
 // Diligent Engine Config
 #ifndef PLATFORM_WIN32
 #define PLATFORM_WIN32 1

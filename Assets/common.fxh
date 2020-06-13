@@ -1,12 +1,12 @@
 
-struct SurfaceVSInput {
+struct VSInput {
     float3 Pos    : ATTRIB0;
     float3 Normal : ATTRIB1;
     float4 Color  : ATTRIB2;
     float2 UV     : ATTRIB3;
 };
 
-struct SurfacePSInput { 
+struct PSInput { 
     float4 Pos          : SV_POSITION; 
     float3 ShadowMapPos : SHADOW_MAP_POS;
     float2 UV           : TEX_COORD;
@@ -15,8 +15,20 @@ struct SurfacePSInput {
     float FogFactor     : FOG;
 };
 
-struct DebugPSInput
-{
+struct PSOutput {
+    float4 Color : SV_TARGET;
+};
+
+struct DebugPSInput {
     float4 Pos : SV_POSITION;
     float2 UV  : TEX_COORD;
+};
+
+cbuffer Constants {
+    float4x4 g_ModelViewProjection;
+    float4x4 g_ModelViewTransform;
+    float4x4 g_ModelTransform;
+    float4x4 g_NormalTransform;
+    float4x4 g_WorldToShadowMapUVDepth;
+    float4   g_LightDirection;    
 };

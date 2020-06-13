@@ -1,18 +1,10 @@
 #pragma once
 
-#include <algorithm>
-#include <cassert>
-#include <iostream>
-#include <memory>
-#include <type_traits>
-#include <SDL.h>
-#include <SDL_syswm.h>
-
 #define let const auto
 
 #define GLM_FORCE_LEFT_HANDED 1
 #define GLM_FORCE_INTRINSICS 1
-#include <glm/glm.hpp>
+#include <glm/fwd.hpp>
 
 typedef glm::int8    int8;
 typedef glm::int16   int16;
@@ -30,6 +22,8 @@ typedef glm::vec4    vec4;
 typedef glm::mat3    mat3;
 typedef glm::mat4    mat4;
 typedef glm::quat    quat;
+typedef glm::ivec2   ivec2;
+typedef glm::uvec2   uvec2;
 
 #define INVALID_INDEX (-1)
 #define TRINKET_EDITOR 1
@@ -38,6 +32,7 @@ typedef glm::quat    quat;
 enum class ForceInit { Default };
 
 #if _DEBUG
+#include <cassert>
 #define DEBUG_ASSERT(x) assert(x)
 #else
 #define DEBUG_ASSERT(x)

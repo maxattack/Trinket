@@ -1,9 +1,7 @@
 #include "common.fxh"
 
-void main(
-    in  uint    VertId : SV_VertexID,
-    out DebugPSInput PSIn
-) {
+
+void main(in  uint VertId : SV_VertexID, out DebugPSInput PSIn) {
     float2 Pos[4];
     Pos[0] = float2(-1.0, -1.0);
     Pos[1] = float2(-1.0, +1.0);

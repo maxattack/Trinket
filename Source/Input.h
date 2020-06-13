@@ -1,5 +1,6 @@
 #pragma once
-#include "Common.h"
+#include "Math.h"
+#include <SDL.h>
 
 struct GameTimestamp {
 	float time;

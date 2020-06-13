@@ -6,26 +6,18 @@ SamplerComparisonState g_ShadowMap_sampler;
 Texture2D g_Texture;
 SamplerState  g_Texture_sampler;
 
-
-struct PSOutput
-{
-	float4 Color : SV_TARGET;
-};
-
-void main(
-	in  SurfacePSInput PSIn, 
-	out PSOutput PSOut
-) {
+void main(in  PSInput Input, out PSOutput Output) {
 	float LightAmount = g_ShadowMap.SampleCmp(
 		g_ShadowMap_sampler, 
-		PSIn.ShadowMapPos.xy, 
-		max(PSIn.ShadowMapPos.z, 1e-7)-0.0001
+		Input.ShadowMapPos.xy, 
+		max(Input.ShadowMapPos.z, 1e-7)-0.0001
 	);
 	
-	float4 BaseColor = g_Texture.Sample(g_Texture_sampler, PSIn.UV) * PSIn.Color;
-	float3 LitColor = BaseColor.rgb * (PSIn.NdotL * LightAmount * 0.8 + 0.2);
+	float4 BaseColor = g_Texture.Sample(g_Texture_sampler, Input.UV) * Input.Color;
+	float3 LitColor = BaseColor.rgb * (Input.NdotL * LightAmount * 0.8 + 0.2);
 	float3 FogColor = float3(0.50, 0.05, 0.55);  // 0.5, 0.6, 0.7);
-	PSOut.Color.rgb = lerp(FogColor, LitColor, PSIn.FogFactor);
-    PSOut.Color.a = BaseColor.a;
+
+	Output.Color.rgb = lerp(FogColor, LitColor, Input.FogFactor);
+    Output.Color.a = BaseColor.a;
 
 }

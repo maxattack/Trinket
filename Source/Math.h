@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.h"
 #include <foundation/PxTransform.h>
+#include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -201,3 +202,5 @@ inline bool ContainsNaN(const HPose& p) { return ContainsNaN(p.rpose) || Contain
 inline bool IsNormalized(const quat& q) { return glm::epsilonEqual(glm::dot(q, q), 1.f, 0.00001f); }
 inline bool IsNormalized(const RPose& p) { return IsNormalized(p.rotation); }
 inline bool IsNormalized(const HPose& p) { return IsNormalized(p.rotation); }
+
+// TODO: Splines

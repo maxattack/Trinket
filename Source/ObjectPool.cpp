@@ -38,19 +38,19 @@ void SparseObjectArray::ReleasePage(int32 pageIdx) {
 	}
 }
 
-void TestAutofree() {
-	using namespace std;
-	class ObjTest : public ObjectComponent {
-	public:
-		ObjTest(ObjectID id) : ObjectComponent(id) { cout << "ADD" << endl; }
-		~ObjTest() { cout << "DELETE" << endl; }
-	};
-	{
-		ObjectPool<ObjTest*> pool;
-		let test = NewObjectComponent<ObjTest>(ObjectID(0x01));
-		pool.TryAppendObject(test->ID(), test);
-	}
-}
+//void TestAutofree() {
+//	using namespace std;
+//	class ObjTest : public ObjectComponent {
+//	public:
+//		ObjTest(ObjectID id) : ObjectComponent(id) { cout << "ADD" << endl; }
+//		~ObjTest() { cout << "DELETE" << endl; }
+//	};
+//	{
+//		ObjectPool<ObjTest*> pool;
+//		let test = NewObjectComponent<ObjTest>(ObjectID(0x01));
+//		pool.TryAppendObject(test->ID(), test);
+//	}
+//}
 
 //void TestObjects() {
 //	using namespace std;

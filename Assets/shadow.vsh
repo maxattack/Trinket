@@ -1,13 +1,7 @@
 #include "common.fxh"
 
-cbuffer Constants {
-    float4x4 g_ModelViewProjection;
-};
+// For the shadow map, we only require the vertex position
 
-struct PSInput { 
-    float4 Pos   : SV_POSITION; 
-};
-
-void main(in SurfaceVSInput VSIn, out PSInput PSIn) {
-    PSIn.Pos = mul(g_ModelViewProjection, float4(VSIn.Pos,1.0));
+float4 main(in VSInput Input) : SV_POSITION {
+    return mul(g_ModelViewProjection, float4(Input.Pos,1.0));
 }

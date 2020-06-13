@@ -5,7 +5,6 @@
 #include "Physics.h"
 
 #include "imgui.h"
-#include <vector>
 #include "DiligentTools/ImGui/interface/ImGuiImplDiligent.hpp"
 #include "DiligentTools/ImGui/interface/ImGuiUtils.hpp"
 #include "imgui_impl_sdl.h"

@@ -1,6 +1,7 @@
 #pragma once
 #include "GraphicsPlatform.h"
 #include "Object.h"
+#include "Math.h"
 
 struct MeshVertex {
 	vec3 position;

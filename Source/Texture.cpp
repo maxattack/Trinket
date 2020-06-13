@@ -4,9 +4,6 @@
 
 Texture::Texture(ObjectID aID)
 	: ObjectComponent(aID)
-	, pData(0)
-	, allocWidth(0)
-	, allocHeight(0)
 {}
 
 Texture::~Texture() {
@@ -14,7 +11,7 @@ Texture::~Texture() {
 		stbi_image_free(pData);
 }
 
-bool Texture::Alloc(int w, int h) {
+bool Texture::Alloc(uint32 w, uint32 h) {
 	let earlyOut = pData != nullptr || w * h == 0;
 	if (earlyOut)
 		return false;
@@ -36,9 +33,14 @@ bool Texture::AllocFile(const char* filename) {
 	if (pData)
 		return false;
 
-	int srcChannelCount;
-	pData = stbi_load(filename, &allocWidth, &allocHeight, &srcChannelCount, 4);
-	return pData != nullptr;
+	int w, h, chan;
+	pData = stbi_load(filename, &w, &h, &chan, 4);
+	if (pData == nullptr)
+		return false;
+
+	allocWidth = w;
+	allocHeight = h;
+	return true;
 }
 
 bool Texture::Dealloc() {
@@ -76,14 +78,20 @@ bool Texture::TryLoad(Graphics* pGraphics) {
 	texData.pSubResources = &texSubResData;
 
 	pGraphics->GetDevice()->CreateTexture(desc, &texData, &pTexture);
+	if (!IsLoaded())
+		return false;
 
-	return IsLoaded();
+	loadWidth = allocWidth;
+	loadHeight = allocHeight;
+	return true;
 }
 
 bool Texture::TryUnload() {
 	if (!IsLoaded())
 		return false;
 	pTexture.Release();
+	loadWidth = 0;
+	loadHeight = 0;
 	return true;
 }
 

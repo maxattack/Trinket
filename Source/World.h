@@ -2,7 +2,7 @@
 #include "ObjectPool.h"
 #include "Name.h"
 #include "Hierarchy.h"
-#include "Pose.h"
+#include "Math.h"
 #include "Listener.h"
 
 class World;

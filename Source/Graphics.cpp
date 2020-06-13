@@ -6,7 +6,7 @@
 #include <glm/gtx/color_space.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "Pose.h"
+#include "Math.h"
 
 #define TEX_FORMAT_SHADOW_MAP TEX_FORMAT_D16_UNORM;
 #define SHADOW_MAP_DEBUG 0
@@ -366,7 +366,6 @@ void Graphics::Draw() {
 	pContext->SetRenderTargets(1, &pRTV, pDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 	pContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 	pContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-
 	int itemIdx=0;
 	for(auto& pass : passes) {
 		let bSkip = pass.itemCount == 0 || !pass.pMaterial->GetPass(pass.materialPassIdx).Bind(this);
