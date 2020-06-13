@@ -6,7 +6,7 @@ Yet another personal hobby game engine.
 
 My goal is to make mod-able games that give players access to the level editor, which is not possible with popular commercial engines like Unity or Unreal.
 
-Towards that goal, the architecture implements a light-weight entitiy-component system.  Different systems or 3rd-party libraries do their own natural bookkeeping, and are "glued together" with a sparseset data structure that maps ObjectIDs to linears arrays with a lookup-cost no worse than chasing two pointers.
+Towards that goal, the architecture implements a light-weight entity-component system.  Different systems or 3rd-party libraries do their own natural bookkeeping, and are "glued together" with a sparseset data structure that maps ObjectIDs to linears arrays with a lookup-cost no worse than chasing two pointers.
 
 This public repository contains my original source, but I haven't included any prebuilt dependencies or gunky build scripts because I don't have the bandwidth to support them, and didn't want to clutter up the commit history with infrastructure noise.
 
