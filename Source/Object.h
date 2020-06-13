@@ -86,20 +86,20 @@ public:
 };
 
 // Wrappers for new/delete
-
 template<class T, class... Args>
 T* NewObjectComponent(ObjectID id, Args&&... args) {
 	return new T(id, std::forward(args)...);
 }
 
-inline void FreeObject(ObjectComponent* obj) {
+inline void FreeObjectComponent(ObjectComponent* obj) {
 	delete obj;
 }
 
+// Generic method for releasing components
 template<typename T>
-void TryFreeObject(T&& p) {
+void TryFreeObjectComponent(T&& p) {
 	if constexpr (std::is_convertible<T, ObjectComponent*>::value) {
-		FreeObject(p);
+		FreeObjectComponent(p);
 	}
 }
 

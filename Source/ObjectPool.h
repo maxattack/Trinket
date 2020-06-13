@@ -97,7 +97,7 @@ public:
 
 	~ObjectPool() {
 		for(auto it : compact)
-			eastl::apply([](auto&... vs) { (TryFreeObject(vs), ...); }, it);	
+			eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, it);	
 	}
 
 	bool IsEmpty() const { return compact.size() == 0; }
@@ -189,6 +189,9 @@ public:
 		}
 
 		// erase compact range
+		for(auto it=itStart; it!=itEnd; ++it)
+			eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, *it);
+
 		compact.erase(itStart, itEnd);
 
 		// update downshifted indices
@@ -212,7 +215,7 @@ public:
 			return false;
 		
 		// free all ObjectComponent pointers
-		eastl::apply([](auto&... vs) { (TryFreeObject(vs), ...); }, compact[idx]);
+		eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, compact[idx]);
 
 		// swap with end?
 		let lastIdx = count - 1;
@@ -241,7 +244,7 @@ public:
 			return false;
 
 		// free all ObjectComponent pointers
-		eastl::apply([](auto&... vs) { (TryFreeObject(vs), ...); }, compact[idx]);
+		eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, compact[idx]);
 
 		// erase + downshift
 		compact.erase(compact.begin() + idx);
@@ -258,7 +261,7 @@ public:
 
 		// free all ObjectComponent pointers
 		for(auto it : compact)
-			eastl::apply([](auto&... vs) { (TryFreeObject(vs), ...); }, it);
+			eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, it);
 
 		sparse.Clear();
 		compact.clear();
