@@ -18,8 +18,8 @@ This public repository contains my original source, but I haven't included any p
 - PhysX - collision and dynamics
 - Lua - runtime configuration, scripting
 - EASTL - performance-conscious container templates
-- Dear IMGUI - editor ui rapid development
-- STB - misc utilities
+- Dear IMGUI - rapid editor development
+- STB - common media codecs, misc utilities
 
 ## License
 
