@@ -1,6 +1,8 @@
 #pragma once
 #include "Common.h"
 #include <foundation/PxTransform.h>
+#include <glm/ext.hpp>
+#include <glm/gtx/transform.hpp>
 
 #define RPOSE_IDENTITY  (RPose(ForceInit::Default))
 #define HPOSE_IDENTITY (HPose(ForceInit::Default))

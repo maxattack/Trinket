@@ -13,8 +13,6 @@
 #define GLM_FORCE_LEFT_HANDED 1
 #define GLM_FORCE_INTRINSICS 1
 #include <glm/glm.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtx/transform.hpp>
 
 typedef glm::int8    int8;
 typedef glm::int16   int16;
