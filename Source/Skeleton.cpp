@@ -43,7 +43,12 @@ Skeleton* SkelRegistry::GetSkeletonFor(ObjectID id) {
 
 bool SkelRegistry::TryAttachSocketTo(ObjectID id, Skeleton* skel, int16 jointIdx, const HPose& pose) {
 	let statusOK = !sockets.Contains(id) && pWorld->IsValid(id);
-	return statusOK && sockets.TryAppendObject(id, Socket { skel->ID(), jointIdx, pose });
+	if (!statusOK && sockets.TryAppendObject(id, Socket { skel->ID(), jointIdx, pose }))
+		return false;
+
+	let pHierarchy = GetWorld()->GetSublevelHierarchyFor(id);
+	pHierarchy->SetMask(id, PoseMask(true, true, true));
+	return true;
 }
 
 bool SkelRegistry::TryReleaseScoket(ObjectID id) {
