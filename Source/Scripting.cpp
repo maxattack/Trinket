@@ -211,7 +211,38 @@ static int l_set_rotation(lua_State* lua) {
 static int l_create_material(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
-	let result = gfx->CreateMaterial(name);
+
+	eastl::string nameStr(name);
+	let vertexFile = nameStr + ".vsh";
+	let pixelFile = nameStr + ".psh";
+
+	Material* result = nullptr;
+
+	if (lua_gettop(lua) > 1) {
+		let textureName = luaL_checkstring(lua, 2);
+		let textureFile = "Assets/" + eastl::string(textureName) + ".png";
+
+		TextureArg targ;
+		targ.variableName = "g_Texture";
+		targ.pTexture = gfx->CreateTexture(textureName, textureFile.c_str());
+
+		MaterialArgs args;
+		args.vertexShaderFile = vertexFile.c_str();
+		args.pixelShaderFile = pixelFile.c_str();
+		args.numTextures = 1;
+		args.pTextureArgs = &targ;
+		result = gfx->CreateMaterial(name, args);
+
+	} else {
+		MaterialArgs args;
+		args.vertexShaderFile = vertexFile.c_str();
+		args.pixelShaderFile = pixelFile.c_str();
+		args.numTextures = 0;
+		args.pTextureArgs = nullptr;
+		result = gfx->CreateMaterial(name, args);
+	}
+
+
 	if (result)
 		lua_pushobj(lua, ObjectTag::MATERIAL_ASSET, result->ID());
 	else 

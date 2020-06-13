@@ -1,9 +1,10 @@
 #include "Material.h"
 #include "Graphics.h"
+#include "Texture.h"
 
 Material::Material(ObjectID aID) : ObjectComponent(aID) {}
 
-bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller) {
+bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const MaterialArgs& args) {
 	if (IsLoaded())
 		return true;
 
@@ -32,11 +33,10 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller) {
 	RefCntAutoPtr<IShader> pVS;
 	{
 		let vsDescName = "VS_" + nameStr;
-		let vsFilename = nameStr + ".vsh";
 		SCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
 		SCI.EntryPoint = "main";
 		SCI.Desc.Name = vsDescName.c_str();
-		SCI.FilePath = vsFilename.c_str();
+		SCI.FilePath = args.vertexShaderFile;
 		pDevice->CreateShader(SCI, &pVS);
 		if (!pVS)
 			return false;
@@ -44,11 +44,10 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller) {
 	RefCntAutoPtr<IShader> pPS;
 	{
 		let psDescName = "PS_" + nameStr;
-		let psFilename = nameStr + ".psh";
 		SCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
 		SCI.EntryPoint = "main";
 		SCI.Desc.Name = psDescName.c_str();
-		SCI.FilePath = psFilename.c_str();
+		SCI.FilePath = args.pixelShaderFile;
 		pDevice->CreateShader(SCI, &pPS);
 		if (!pPS)
 			return false;
@@ -60,11 +59,15 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller) {
 	PSODesc.GraphicsPipeline.pPS = pPS;
 
 	PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
-	ShaderResourceVariableDesc Vars[]{
-		{ SHADER_TYPE_PIXEL, "g_ShadowMap", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE }
-	};
+
+	DEBUG_ASSERT(args.numTextures < 16);
+
+	ShaderResourceVariableDesc Vars[16];
+	Vars[0] = { SHADER_TYPE_PIXEL, "g_ShadowMap", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };
+	for(int it=0; it<args.numTextures; ++it)
+		Vars[it+1] = { SHADER_TYPE_PIXEL, args.pTextureArgs[it].variableName, SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };
 	PSODesc.ResourceLayout.Variables = Vars;
-	PSODesc.ResourceLayout.NumVariables = _countof(Vars);
+	PSODesc.ResourceLayout.NumVariables = args.numTextures + 1;
 
 	// define static comparison sampler for shadow map
 	SamplerDesc ComparisonSampler;
@@ -72,12 +75,14 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller) {
 	ComparisonSampler.MinFilter = FILTER_TYPE_COMPARISON_LINEAR;
 	ComparisonSampler.MagFilter = FILTER_TYPE_COMPARISON_LINEAR;
 	ComparisonSampler.MipFilter = FILTER_TYPE_COMPARISON_LINEAR;
-	StaticSamplerDesc StaticSamplers[]{
-		{ SHADER_TYPE_PIXEL, "g_ShadowMap", ComparisonSampler }
-	};
-	PSODesc.ResourceLayout.StaticSamplers = StaticSamplers;
-	PSODesc.ResourceLayout.NumStaticSamplers = _countof(StaticSamplers);
 
+
+	StaticSamplerDesc StaticSamplers[16];
+	StaticSamplers[0] = { SHADER_TYPE_PIXEL, "g_ShadowMap", ComparisonSampler };
+	for(int it=0; it<args.numTextures; ++it)
+		StaticSamplers[it+1] = { SHADER_TYPE_PIXEL, args.pTextureArgs[it].variableName, ComparisonSampler };
+	PSODesc.ResourceLayout.StaticSamplers = StaticSamplers;
+	PSODesc.ResourceLayout.NumStaticSamplers = args.numTextures + 1;
 
 	pDevice->CreatePipelineState(Args, &pMaterialPipelineState);
 	if (!pMaterialPipelineState)
@@ -86,7 +91,13 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller) {
 	pMaterialPipelineState->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(pGraphics->GetRenderConstants());
 	pMaterialPipelineState->CreateShaderResourceBinding(&pMaterialResourceBinding, true);
 
-	pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, "g_ShadowMap")->Set(pGraphics->GetShadowMapSRV());
+	if (let pShadowMapVar = pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, "g_ShadowMap"))
+		pShadowMapVar->Set(pGraphics->GetShadowMapSRV());
+
+	for(int it=0; it<args.numTextures; ++it)
+		if (let pVar = pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, args.pTextureArgs[it].variableName))
+			pVar->Set(args.pTextureArgs[it].pTexture->GetSRV());
+
 	return true;
 }
 

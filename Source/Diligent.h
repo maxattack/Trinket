@@ -22,4 +22,6 @@
 
 using namespace Diligent;
 class Graphics;
-
+class Texture;
+class Material;
+class Mesh;

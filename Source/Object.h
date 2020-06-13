@@ -102,3 +102,8 @@ void TryFreeObject(T&& p) {
 		FreeObject(p);
 	}
 }
+
+template<typename T>
+inline T* DerefPP(T** ppComponent) {
+	return ppComponent ? *ppComponent : nullptr;
+}

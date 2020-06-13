@@ -3,6 +3,7 @@ trinket.log "Hello..."
 
 -- create some mesh assets
 
+local mat_checkboard = trinket.create_material("textured", "checkerboard")
 local mat_surface = trinket.create_material("surface")
 local mesh_plane = trinket.create_plane_mesh("plane", 5)
 local mesh_box = trinket.create_cube_mesh("cube", 0.25)
@@ -10,7 +11,7 @@ local mesh_box = trinket.create_cube_mesh("cube", 0.25)
 -- create floor mesh
 
 local floor = trinket.create_object("floor")
-trinket.attach_rendermesh_to(floor, mesh_plane, mat_surface, false)
+trinket.attach_rendermesh_to(floor, mesh_plane, mat_checkboard, false)
 trinket.set_rotation(floor, -90, 0, 0)
 trinket.add_ground_plane()
 

@@ -58,12 +58,12 @@ public:
 	
 	bool IsSublevel(ObjectID id) { return sublevels.Contains(id); }
 	int GetSublevelCount() const { return sublevels.Count(); }
-	ObjectID GetSublevelByIndex(int32 idx) const { return *sublevels.GetComponentByIndex<0>(idx); }
-	Hierarchy* GetHierarchy(ObjectID id) const { return *sublevels.TryGetComponent<1>(id); }
-	Hierarchy* GetHierarchyByIndex(int32 idx) const { return *sublevels.GetComponentByIndex<1>(idx); }
+	ObjectID GetSublevelByIndex(int32 idx) const { return *sublevels.GetComponentByIndex<C_HANDLE>(idx); }
+	Hierarchy* GetHierarchy(ObjectID id) { return DerefPP(sublevels.TryGetComponent<C_HIERARCHY>(id)); }
+	Hierarchy* GetHierarchyByIndex(int32 idx) { return *sublevels.GetComponentByIndex<C_HIERARCHY>(idx); }
 
 	ObjectID GetSublevel(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? *result : OBJECT_NIL; }
-	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { let result = sublevels.TryGetComponent<C_HIERARCHY>(GetSublevel(id)); return result ? *result : nullptr; }
+	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { return DerefPP(sublevels.TryGetComponent<C_HIERARCHY>(GetSublevel(id))); }
 
 	void SanityCheck();
 

@@ -40,17 +40,3 @@ public:
 	void TryRename(ObjectID id, Name name);
 
 };
-
-template<typename... Ts>
-class UnorderedAssetPool : public ObjectPool<Ts...>, IAssetListener
-{
-private:
-	AssetDatabase* pAssets;
-
-public:
-
-	UnorderedAssetPool(AssetDatabase* db) : pAssets(db) { if (pAssets) pAssets->AddListener(this); }
-	~UnorderedAssetPool() { if (pAssets) pAssets->RemoveListener(this); }
-
-	virtual void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override { this->TryReleaseObject_Swap(id); }
-};

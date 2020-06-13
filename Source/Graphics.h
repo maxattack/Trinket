@@ -3,6 +3,7 @@
 #include "World.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "Texture.h"
 
 // TODO: Implement IAssetListener to detect releases
 
@@ -33,7 +34,7 @@ struct RenderConstants {
 	vec4 LightDirection;
 };
 
-class Graphics {
+class Graphics : IAssetListener {
 public:
 
 	Graphics(AssetDatabase* pAssets, World* pWorld, SDL_Window* aWindow);
@@ -63,28 +64,34 @@ public:
 
 	float GetAspect() const { let& SCD = pSwapChain->GetDesc(); return float(SCD.Width) / float(SCD.Height); }
 
-	Material* CreateMaterial(Name name);
-	Material* GetMaterial(ObjectID matID) { let result = materialAssets.TryGetComponent<C_MATERIAL_ASSET>(matID); return result ? *result : nullptr; }
-	void ReleaseMaterial(ObjectID materialID);
+	Material* CreateMaterial(Name name, const MaterialArgs& Args);
+	Material* GetMaterial(ObjectID assetID) { return DerefPP(materialAssets.TryGetComponent<C_MATERIAL_ASSET>(assetID)); }
+
+	Texture* CreateTexture(Name name, const char* filePath);
+	Texture* GetTexture(ObjectID assetID) { return DerefPP(textureAssets.TryGetComponent<C_TEXTURE_ASSET>(assetID)); }
 
 	Mesh* CreateMesh(Name name);
-	Mesh* GetMesh(ObjectID meshID) { let result = meshAssets.TryGetComponent<C_MESH_ASSET>(meshID); return result ? *result : nullptr; }
-	void ReleaseMesh(ObjectID meshID);
+	Mesh* GetMesh(ObjectID meshID) { return DerefPP(meshAssets.TryGetComponent<C_MESH_ASSET>(meshID)); }
 
 	bool TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& Data);
 	const RenderMeshData* GetRenderMeshFor(ObjectID id) const;
 	bool TryReleaseRenderMeshFor(ObjectID id);
 
 private:
+
+	void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override;
+
 	AssetDatabase* pAssets;
 	World* pWorld;
 
 	enum MeshAssetComponents { C_HANDLE, C_MESH_ASSET=1 };
 	enum MaterialAssetComponents { C_MATERIAL_ASSET=1 };
+	enum TextureAssetComponents { C_TEXTURE_ASSET=1 };
 	enum RenderMeshComponents { C_RENDER_MESH=1 };
 
-	UnorderedAssetPool<Mesh*> meshAssets;
-	UnorderedAssetPool<Material*> materialAssets;
+	ObjectPool<Mesh*> meshAssets;
+	ObjectPool<Texture*> textureAssets;
+	ObjectPool<Material*> materialAssets;
 	UnorderedWorldPool<RenderMeshData> meshRenderers;
 
 	SDL_Window* pWindow;

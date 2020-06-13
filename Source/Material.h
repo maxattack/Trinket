@@ -4,6 +4,18 @@
 #include "Diligent.h"
 #include <eastl/string.h>
 
+struct TextureArg {
+	const char* variableName;
+	Texture* pTexture;
+};
+
+struct MaterialArgs {
+	const char* vertexShaderFile;
+	const char* pixelShaderFile;
+	TextureArg* pTextureArgs;
+	int numTextures;
+};
+
 class MaterialPass {
 private:
 	RefCntAutoPtr<IPipelineState>         pMaterialPipelineState;
@@ -18,7 +30,7 @@ public:
 	MaterialPass& operator=(const MaterialPass&) = delete;
 	
 	bool IsLoaded() const { return pMaterialPipelineState; }
-	bool TryLoad(Graphics* pGraphics, class Material* pCaller);
+	bool TryLoad(Graphics* pGraphics, class Material* pCaller, const MaterialArgs& args);
 	bool TryUnload(Graphics* pGraphics);
 
 	bool Bind(Graphics* pGraphics);
@@ -38,7 +50,7 @@ public:
 	MaterialPass& GetPass(int idx) { return defaultMaterialPass; }
 
 	bool IsLoaded() const { return defaultMaterialPass.IsLoaded(); }
-	bool TryLoad(Graphics* pGraphics) { return defaultMaterialPass.TryLoad(pGraphics, this); }
+	bool TryLoad(Graphics* pGraphics, const MaterialArgs& args) { return defaultMaterialPass.TryLoad(pGraphics, this, args); }
 	bool TryUnload(Graphics* pGraphics) { return defaultMaterialPass.TryUnload(pGraphics); }
 
 };

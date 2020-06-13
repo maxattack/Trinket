@@ -28,12 +28,13 @@ Graphics::Graphics(AssetDatabase* aAssets, World* aWorld, SDL_Window* aWindow)
 	: pAssets(aAssets)
 	, pWorld(aWorld)
 	, pWindow(aWindow)
-	, meshAssets(aAssets)
-	, materialAssets(aAssets)
 	, meshRenderers(aWorld)
 	, pov{ RPose(ForceInit::Default), 60.f, 0.01f, 100000.f }
 	, lightDirection(0, -1, 0)
 {
+	if (pAssets)
+		pAssets->AddListener(this);
+
 	HWND hwnd = GetActiveWindow(); // TODO: way to get this from pWindow?
 
 	// Rendering is routed through the Diligent Graphics API, which performs
@@ -176,18 +177,24 @@ void Graphics::InitSceneRenderer() {
 }
 
 Graphics::~Graphics() {
+	if (pAssets)
+		pAssets->RemoveListener(this);
 	meshAssets.Clear();
 	if (pContext)
 		pContext->Flush();
 }
 
-Material* Graphics::CreateMaterial(Name name) {
+Material* Graphics::CreateMaterial(Name name, const MaterialArgs& Args) {
 
 	// add asset object
 	let id = pAssets->CreateObject(name);
 	let result = NewObjectComponent<Material>(id);
-	if (!materialAssets.TryAppendObject(id, result))
-		return nullptr;
+	materialAssets.TryAppendObject(id, result);
+
+	// defer this?
+	result->TryLoad(this, Args);
+	for(int it=0; it<Args.numTextures; ++it)
+		pAssets->AddRef(Args.pTextureArgs[it].pTexture->ID());
 
 	// add render passes
 	for(int it=0; it<result->NumPasses(); ++it)
@@ -196,22 +203,26 @@ Material* Graphics::CreateMaterial(Name name) {
 	return result;
 }
 
-void Graphics::ReleaseMaterial(ObjectID materialID) {
-	// TODO
-}
-
-Mesh* Graphics::CreateMesh(Name name) {
-	
-	// add asset object
+Texture* Graphics::CreateTexture(Name name, const char* filePath) {
 	let id = pAssets->CreateObject(name);
-	let result = NewObjectComponent<Mesh>(id);
-	meshAssets.TryAppendObject(id, result);
-
+	let result = NewObjectComponent<Texture>(id);
+	textureAssets.TryAppendObject(id, result);
+	result->TryLoad(this, filePath);
 	return result;
 }
 
-void Graphics::ReleaseMesh(ObjectID meshID) {
-	pAssets->Release(meshID);
+Mesh* Graphics::CreateMesh(Name name) {
+	let id = pAssets->CreateObject(name);
+	let result = NewObjectComponent<Mesh>(id);
+	meshAssets.TryAppendObject(id, result);
+	return result;
+}
+
+void Graphics::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {
+	// TODO: LOTS
+	meshAssets.TryReleaseObject_Swap(id)     || 
+	textureAssets.TryReleaseObject_Swap(id)  || 
+	materialAssets.TryReleaseObject_Swap(id) ;
 }
 
 bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {
@@ -231,7 +242,6 @@ bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {
 	if (!meshRenderers.TryAppendObject(id, data))
 		return false;
 	
-	pMaterial->TryLoad(this);
 	pAssets->AddRef(data.mesh);
 	pAssets->AddRef(data.material);
 
@@ -239,13 +249,12 @@ bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {
 	int itemIdx = 0;
 	for (auto pit = passes.begin(); pit != passes.end(); ++pit)
 	{
-		if (pit->pMaterial != pMaterial)
-			continue;
-		
-		for (uint16 submeshIdx = 0; submeshIdx < pMesh->GetSubmeshCount(); ++submeshIdx) 
-			items.insert(items.begin() + itemIdx, RenderItem { pMesh, id, submeshIdx, data.castsShadow });
-
-		pit->itemCount += pMesh->GetSubmeshCount();
+		if (pit->pMaterial == pMaterial)
+		{
+			for (uint16 submeshIdx = 0; submeshIdx < pMesh->GetSubmeshCount(); ++submeshIdx) 
+				items.insert(items.begin() + itemIdx, RenderItem { pMesh, id, submeshIdx, data.castsShadow });
+			pit->itemCount += pMesh->GetSubmeshCount();
+		}
 		itemIdx += pit->itemCount;
 	}
 
@@ -361,7 +370,8 @@ void Graphics::Draw() {
 
 	int itemIdx=0;
 	for(auto& pass : passes) {
-		if (!pass.pMaterial->GetPass(pass.materialPassIdx).Bind(this))
+		let bSkip = pass.itemCount == 0 || !pass.pMaterial->GetPass(pass.materialPassIdx).Bind(this);
+		if (bSkip)
 			continue;
 		for(int it=0; it<pass.itemCount; ++it) {
 			let& item = items[itemIdx + it];
