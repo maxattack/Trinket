@@ -33,7 +33,7 @@ private:
 
 public:
 
-	Editor(AssetDatabase *aAssets, World* aWorld, Physics* aPhysics, Graphics *aGraphics);
+	Editor(Physics* aPhysics, Graphics *aGraphics);
 	~Editor();
 
 	void HandleEvent(const SDL_Event& Event);

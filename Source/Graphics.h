@@ -1,6 +1,5 @@
 #pragma once
-#include "Assets.h"
-#include "World.h"
+#include "Skeleton.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "Texture.h"
@@ -34,15 +33,19 @@ struct RenderConstants {
 	vec4 LightDirection;
 };
 
-class Graphics : IAssetListener {
+class Graphics : IAssetListener, IWorldListener, ISkeletonRegistryListener {
 public:
 
-	Graphics(AssetDatabase* pAssets, World* pWorld, SDL_Window* aWindow);
+	Graphics(SkeletonRegistry* pSkel, SDL_Window* aWindow);
 	~Graphics();
 
 	void InitSceneRenderer();
 	void HandleEvent(const SDL_Event& aEvent);
 	void Draw();
+
+	SkeletonRegistry* GetSkeletonRegistory() const { return pSkel; }
+	AssetDatabase* GetAssets() const { return pAssets; }
+	World* GetWorld() const { return pWorld; }
 
 	SDL_Window* GetWindow() { return pWindow; }
 
@@ -53,8 +56,6 @@ public:
 	IShaderSourceInputStreamFactory* GetShaderSourceStream() { return pShaderSourceFactory; }
 	IBuffer* GetRenderConstants() { return pRenderConstants; }
 	ITextureView* GetShadowMapSRV() { return pShadowMapSRV; }
-
-	AssetDatabase* GetAssets() const { return pAssets; }
 
 	const CameraPOV& GetPOV() const { return pov; }
 
@@ -82,7 +83,12 @@ public:
 private:
 
 	void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override;
+	void World_WillReleaseObject(World* caller, ObjectID id) override;
+	void Skeleton_WillReleaseSkeleton(class SkeletonRegistry* Caller, ObjectID id) override;
+	void Skeleton_WillReleaseSkelAsset(class SkeletonRegistry* Caller, ObjectID id) override;
 
+
+	SkeletonRegistry* pSkel;
 	AssetDatabase* pAssets;
 	World* pWorld;
 
@@ -94,7 +100,7 @@ private:
 	ObjectPool<Mesh*> meshAssets;
 	ObjectPool<Texture*> textureAssets;
 	ObjectPool<Material*> materialAssets;
-	UnorderedWorldPool<RenderMeshData> meshRenderers;
+	ObjectPool<RenderMeshData> meshRenderers;
 
 	SDL_Window* pWindow;
 

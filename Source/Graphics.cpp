@@ -24,16 +24,16 @@ void GraphicsDebugMessageCallback(
 }
 
 
-Graphics::Graphics(AssetDatabase* aAssets, World* aWorld, SDL_Window* aWindow) 
-	: pAssets(aAssets)
-	, pWorld(aWorld)
+Graphics::Graphics(SkeletonRegistry* aSkel, SDL_Window* aWindow) 
+	: pSkel(aSkel)
+	, pAssets(aSkel->GetAssets())
+	, pWorld(aSkel->GetWorld())
 	, pWindow(aWindow)
-	, meshRenderers(aWorld)
 	, pov{ RPose(ForceInit::Default), 60.f, 0.01f, 100000.f }
 	, lightDirection(0, -1, 0)
 {
-	if (pAssets)
-		pAssets->AddListener(this);
+	pAssets->AddListener(this);
+	pWorld->AddListener(this);
 
 	HWND hwnd = GetActiveWindow(); // TODO: way to get this from pWindow?
 
@@ -58,6 +58,30 @@ Graphics::Graphics(AssetDatabase* aAssets, World* aWorld, SDL_Window* aWindow)
 	pFactoryD3D12->CreateSwapChainD3D12(pDevice, pContext, SCDesc, FullScreenModeDesc{}, Win32NativeWindow{ hwnd }, &pSwapChain);
 	pSwapChain->SetMaximumFrameLatency(1);
 
+}
+
+Graphics::~Graphics() {
+	pAssets->RemoveListener(this);
+	pWorld->RemoveListener(this);
+	meshAssets.Clear();
+	if (pContext)
+		pContext->Flush();
+}
+
+void Graphics::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {
+	// TODO
+}
+
+void Graphics::World_WillReleaseObject(World* caller, ObjectID id) {
+	// TODO
+}
+
+void Graphics::Skeleton_WillReleaseSkeleton(class SkeletonRegistry* Caller, ObjectID id) {
+	// TODO
+}
+
+void Graphics::Skeleton_WillReleaseSkelAsset(class SkeletonRegistry* Caller, ObjectID id) {
+	// TODO
 }
 
 void Graphics::InitSceneRenderer() {
@@ -176,14 +200,6 @@ void Graphics::InitSceneRenderer() {
 #endif
 }
 
-Graphics::~Graphics() {
-	if (pAssets)
-		pAssets->RemoveListener(this);
-	meshAssets.Clear();
-	if (pContext)
-		pContext->Flush();
-}
-
 Material* Graphics::CreateMaterial(Name name, const MaterialArgs& Args) {
 
 	// add asset object
@@ -215,13 +231,6 @@ Mesh* Graphics::CreateMesh(Name name) {
 	let result = NewObjectComponent<Mesh>(id);
 	meshAssets.TryAppendObject(id, result);
 	return result;
-}
-
-void Graphics::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {
-	// TODO: LOTS
-	meshAssets.TryReleaseObject_Swap(id)     || 
-	textureAssets.TryReleaseObject_Swap(id)  || 
-	materialAssets.TryReleaseObject_Swap(id) ;
 }
 
 bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {

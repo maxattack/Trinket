@@ -9,9 +9,9 @@
 #include <iostream>
 
 
-Editor::Editor(AssetDatabase* aAssets, World* aWorld, Physics* aPhysics, Graphics* aGraphics) 
-	: pAssets(aAssets)
-	, pWorld(aWorld)
+Editor::Editor(Physics* aPhysics, Graphics* aGraphics) 
+	: pAssets(aGraphics->GetAssets())
+	, pWorld(aGraphics->GetWorld())
 	, pPhysics(aPhysics)
 	, pGraphics(aGraphics)
 	, impl(pGraphics->GetDevice(), pGraphics->GetSwapChain()->GetDesc().ColorBufferFormat, pGraphics->GetSwapChain()->GetDesc().DepthBufferFormat)

@@ -76,30 +76,30 @@ private:
 //------------------------------------------------------------------------------------------
 // Component-pools that auto-remove released handles
 
-template<typename... Ts>
-class OrderedWorldPool	: public ObjectPool<Ts...>, IWorldListener
-{
-private:
-	World* pWorld;
-
-public:
-
-	OrderedWorldPool(World* aWorld) : pWorld(aWorld) { if (pWorld) pWorld->AddListener(this); }
-	~OrderedWorldPool() { if (pWorld) pWorld->RemoveListener(this); }
-
-	void World_WillReleaseObject(World* caller, ObjectID id) override { this->TryReleaseObject_Shift(id); }
-};
-
-template<typename... Ts>
-class UnorderedWorldPool : public ObjectPool<Ts...>, IWorldListener
-{
-private:
-	World* pWorld;
-
-public:
-
-	UnorderedWorldPool(World* aWorld) : pWorld(aWorld) { if (pWorld) pWorld->AddListener(this); }
-	~UnorderedWorldPool() { if (pWorld) pWorld->RemoveListener(this); }
-
-	void World_WillReleaseObject(World* caller, ObjectID id) override { this->TryReleaseObject_Swap(id); }
-};
+//template<typename... Ts>
+//class OrderedWorldPool	: public ObjectPool<Ts...>, IWorldListener
+//{
+//private:
+//	World* pWorld;
+//
+//public:
+//
+//	OrderedWorldPool(World* aWorld) : pWorld(aWorld) { if (pWorld) pWorld->AddListener(this); }
+//	~OrderedWorldPool() { if (pWorld) pWorld->RemoveListener(this); }
+//
+//	void World_WillReleaseObject(World* caller, ObjectID id) override { this->TryReleaseObject_Shift(id); }
+//};
+//
+//template<typename... Ts>
+//class UnorderedWorldPool : public ObjectPool<Ts...>, IWorldListener
+//{
+//private:
+//	World* pWorld;
+//
+//public:
+//
+//	UnorderedWorldPool(World* aWorld) : pWorld(aWorld) { if (pWorld) pWorld->AddListener(this); }
+//	~UnorderedWorldPool() { if (pWorld) pWorld->RemoveListener(this); }
+//
+//	void World_WillReleaseObject(World* caller, ObjectID id) override { this->TryReleaseObject_Swap(id); }
+//};

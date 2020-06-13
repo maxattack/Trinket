@@ -444,9 +444,9 @@ static const struct luaL_Reg trinketLib[] = {
 //------------------------------------------------------------------------------------------
 // Script VM External API
 
-ScriptVM::ScriptVM(AssetDatabase* aAssets, World* aWorld, Input* aInput, Graphics* aGraphics, Physics* aPhysics)
-	: pAssets(aAssets)
-	, pWorld(aWorld)
+ScriptVM::ScriptVM(Input* aInput, Graphics* aGraphics, Physics* aPhysics)
+	: pAssets(aGraphics->GetAssets())
+	, pWorld(aGraphics->GetWorld())
 	, pInput(aInput)
 	, pGraphics(aGraphics)
 	, pPhysics(aPhysics)

@@ -1,8 +1,9 @@
-#include "Graphics.h"
 #include "Assets.h"
 #include "World.h"
-#include "Scripting.h"
 #include "Physics.h"
+#include "Animation.h"
+#include "Graphics.h"
+#include "Scripting.h"
 #include "Editor.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -15,14 +16,14 @@ int main(int argc, char** argv) {
 
 	// init sdl
 	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_GAMECONTROLLER) < 0) {
-		cout << "SDL Init Error: " << SDL_GetError() << endl;
+		cout << "[SDL] Init Error: " << SDL_GetError() << endl;
 		return -1;
 	}
 
 	let windowFlags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
 	let window = SDL_CreateWindow("Trinket", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, windowFlags);
 	if (window == nullptr) {
-		cout << "SDL Create Window Error: " << SDL_GetError() << endl;
+		cout << "[SDL] Create Window Error: " << SDL_GetError() << endl;
 		getchar();
 		return -1;
 	}
@@ -40,11 +41,13 @@ int main(int argc, char** argv) {
 	static AssetDatabase db;
 	static World world;
 	static Input input;
+	static SkeletonRegistry skel(&db, &world);
 	static Physics phys(&db, &world);
-	static Graphics gfx(&db, &world, window);
-	static ScriptVM vm(&db, &world, &input, &gfx, &phys);
+	static AnimationRuntime anim(&skel);
+	static Graphics gfx(&skel, window);
+	static ScriptVM vm(&input, &gfx, &phys);
 	#if TRINKET_EDITOR
-	static Editor editor(&db, &world, &phys, &gfx);
+	static Editor editor(&phys, &gfx);
 	#endif
 
 	// init

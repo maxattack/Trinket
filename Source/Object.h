@@ -87,10 +87,10 @@ public:
 
 // Wrappers for new/delete
 template<class T, class... Args>
-T* NewObjectComponent(ObjectID id, Args&&... args) {
-	return new T(id, std::forward(args)...);
+inline T* NewObjectComponent(Args&&... args) {
+	static_assert(std::is_convertible<T*, ObjectComponent*>::value);
+	return new T(std::forward<Args>(args)...);
 }
-
 inline void FreeObjectComponent(ObjectComponent* obj) {
 	delete obj;
 }

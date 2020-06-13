@@ -16,7 +16,7 @@ private:
 
 public:
 
-	ScriptVM(AssetDatabase* aAssets, World* aWorld, Input* aInput, Graphics* aGraphics, Physics* aPhysics);
+	ScriptVM(Input* aInput, Graphics* aGraphics, Physics* aPhysics);
 	~ScriptVM();
 
 	AssetDatabase* GetAssets() const { return pAssets; }
