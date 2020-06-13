@@ -16,7 +16,6 @@ bool Texture::TryLoad(Graphics* pGraphics, const char* filename) {
 	loadInfo.IsSRGB = true;
 	
 	CreateTextureFromFile(filename, loadInfo, pGraphics->GetDevice(), &pTexture);
-	pTextureView = pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
 	return IsLoaded();
 }
 
