@@ -41,12 +41,12 @@ static ObjectHandle check_obj(lua_State* lua, ObjectTag tag, int narg) {
 	return obj;
 }
 
-static bool check_boolean(lua_State* lua, int narg) {
+static bool lua_check_boolean(lua_State* lua, int narg) {
 	luaL_argcheck(lua, narg <= lua_gettop(lua), narg, "Expected Boolean");
 	return !!lua_toboolean(lua, narg);
 }
 
-static bool check_boolean_opt(lua_State* lua, int narg, bool opt_def = false) {
+static bool lua_check_boolean_opt(lua_State* lua, int narg, bool opt_def = false) {
 	if (narg > lua_gettop(lua))
 		return opt_def;
 	return !!lua_toboolean(lua, narg);
@@ -60,14 +60,14 @@ static float lua_checkfloat(lua_State* lua, int narg) {
 	return (float) luaL_checknumber(lua, narg);
 }
 
-static vec2 check_vec2(lua_State* lua, int narg) { 
+static vec2 lua_check_vec2(lua_State* lua, int narg) { 
 	return vec2(
 		lua_checkfloat(lua, narg), 
 		lua_checkfloat(lua, narg + 1)
 	); 
 }
 
-static vec3 check_vec3(lua_State* lua, int narg) { 
+static vec3 lua_check_vec3(lua_State* lua, int narg) { 
 	return vec3(
 		lua_checkfloat(lua, narg), 
 		lua_checkfloat(lua, narg + 1), 
@@ -75,7 +75,11 @@ static vec3 check_vec3(lua_State* lua, int narg) {
 	); 
 }
 
-static vec4 check_color_opt_alpha(lua_State* lua, int narg) { 
+static quat lua_check_euler(lua_State* lua, int narg) {
+	return quat(glm::radians(lua_check_vec3(lua, narg)));
+}
+
+static vec4 lua_check_color_opt_alpha(lua_State* lua, int narg) { 
 	vec4 result;
 	result.r = lua_checkfloat(lua, narg);
 	result.g = lua_checkfloat(lua, narg+1);
@@ -84,6 +88,16 @@ static vec4 check_color_opt_alpha(lua_State* lua, int narg) {
 	return result;
 }
 
+static void lua_pushvec2(lua_State* lua, vec2 v) {
+	lua_pushnumber(lua, v.x);
+	lua_pushnumber(lua, v.y);
+}
+
+static void lua_pushvec3(lua_State* lua, vec3 v) {
+	lua_pushnumber(lua, v.x);
+	lua_pushnumber(lua, v.y);
+	lua_pushnumber(lua, v.z);
+}
 
 //------------------------------------------------------------------------------------------
 // script entry-points
@@ -172,27 +186,23 @@ static int l_object_at(lua_State* lua) {
 static int l_position(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
 	let pos = hierarchy->GetWorldPose(obj.id)->position;
-	lua_pushnumber(lua, pos.x);
-	lua_pushnumber(lua, pos.y);
-	lua_pushnumber(lua, pos.z);
+	lua_pushvec3(lua, pos);
 	return 3;
 }
 
 static int l_relative_position(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
 	let pos = hierarchy->GetRelativePose(obj.id)->position;
-	lua_pushnumber(lua, pos.x);
-	lua_pushnumber(lua, pos.y);
-	lua_pushnumber(lua, pos.z);
+	lua_pushvec3(lua, pos);
 	return 3;
 }
 
 static int l_set_pose_mask(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
 	const PoseMask mask(
-		check_boolean(lua, 2),
-		check_boolean(lua, 3),
-		check_boolean(lua, 4)
+		lua_check_boolean(lua, 2),
+		lua_check_boolean(lua, 3),
+		lua_check_boolean(lua, 4)
 	);
 	hierarchy->SetMask(obj.id, mask);
 	return 0;
@@ -200,23 +210,13 @@ static int l_set_pose_mask(lua_State* lua) {
 
 static int l_set_position(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	const vec3 pos (
-		luaL_checknumber(lua, 2),
-		luaL_checknumber(lua, 3),
-		luaL_checknumber(lua, 4)
-	);
-	hierarchy->SetWorldPosition(obj.id, pos);
+	hierarchy->SetWorldPosition(obj.id, lua_check_vec3(lua, 2));
 	return 0;
 }
 
 static int l_set_rotation(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	const vec3 euler (
-		glm::radians(luaL_checknumber(lua, 2)),
-		glm::radians(luaL_checknumber(lua, 3)),
-		glm::radians(luaL_checknumber(lua, 4))
-	);
-	hierarchy->SetWorldRotation(obj.id, quat(euler));
+	hierarchy->SetWorldRotation(obj.id, lua_check_euler(lua, 2));
 	return 0;
 }
 
@@ -297,7 +297,7 @@ static int l_attach_rendermesh_to(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
 	let mesh = check_obj(lua, ObjectTag::MESH_ASSET, 2);
 	let material = check_obj(lua, ObjectTag::MATERIAL_ASSET, 3);
-	let shadow = check_boolean_opt(lua, 4, true);
+	let shadow = lua_check_boolean_opt(lua, 4, true);
 	RenderMeshData rmd { mesh.id, material.id, shadow };	
 	let result = gfx->TryAttachRenderMeshTo(obj.id, rmd);
 	lua_pushboolean(lua, result);
@@ -329,21 +329,20 @@ static int l_attach_boxcollider_to(lua_State* lua) {
 static int l_get_pov_position(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let result = gfx->GetPOV().pose.position;
-	lua_pushnumber(lua, result.x);
-	lua_pushnumber(lua, result.y);
-	lua_pushnumber(lua, result.z);
+	lua_pushvec3(lua, result);
 	return 3;
 }
 
 static int l_set_pov_position(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	gfx->SetEyePosition(check_vec3(lua, 1));
+	let pos =lua_check_vec3(lua, 1);
+	gfx->SetEyePosition(pos);
 	return 0;
 }
 
 int l_translate_pov_local(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	let offset = check_vec3(lua, 1);
+	let offset = lua_check_vec3(lua, 1);
 	let& pose = gfx->GetPOV().pose;
 	gfx->SetEyePosition(pose.position + pose.rotation * offset);
 	return 0;
@@ -351,33 +350,27 @@ int l_translate_pov_local(lua_State* lua) {
 
 static int l_set_pov_rotation(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	let pitch = glm::radians(lua_checkfloat(lua, 1));
-	let yaw = glm::radians(lua_checkfloat(lua, 2));
-	let roll = glm::radians(lua_checkfloat(lua, 3));
-	gfx->SetEyeRotation(quat(vec3(pitch, yaw, roll)));
+	let rot = lua_check_euler(lua, 1);
+	gfx->SetEyeRotation(rot);
 	return 0;
 }
 
 static int l_set_light_direction(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	let dir = glm::normalize(check_vec3(lua, 1));
+	let dir = glm::normalize(lua_check_vec3(lua, 1));
 	gfx->SetLightDirection(dir);
 	return 0;
 }
 
 static int l_get_left_stick(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	let ls = input->GetStickL();
-	lua_pushnumber(lua, ls.x);
-	lua_pushnumber(lua, ls.y);
+	lua_pushvec2(lua, input->GetStickL());
 	return 2;
 }
 
 static int l_get_right_stick(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	let rs = input->GetStickR();
-	lua_pushnumber(lua, rs.x);
-	lua_pushnumber(lua, rs.y);
+	lua_pushvec2(lua, input->GetStickR());
 	return 2;
 }
 
@@ -393,11 +386,24 @@ static int l_get_right_trigger(lua_State* lua) {
 	return 1;
 }
 
+static int l_get_game_time(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	lua_pushnumber(lua, input->GetTime());
+	return 1;
+}
+
+static int l_get_raw_time(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	lua_pushnumber(lua, float(input->GetTicks()));
+	return 1;
+}
+
 static int l_set_time_dilation(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	input->SetTimeDilation(lua_checkfloat(lua, 1));
 	return 0;
 }
+
 
 static const struct luaL_Reg lib_trinket[] = {
 	{ "log",                  l_log                  },
@@ -416,6 +422,8 @@ static const struct luaL_Reg lib_trinket[] = {
 	{ "get_right_stick",      l_get_right_stick      },
 	{ "get_left_trigger",     l_get_left_trigger     },
 	{ "get_right_trigger",    l_get_right_trigger    },
+	{ "get_game_time",        l_get_game_time        },
+	{ "get_raw_time",         l_get_raw_time         },
 	{ "set_time_dilation",    l_set_time_dilation    },
 
 	// hierarchy functions
@@ -452,34 +460,80 @@ static const struct luaL_Reg lib_trinket[] = {
 
 static int l_wireframe_set_position(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	vm->wireframePosition = check_vec3(lua, 1);
+	vm->wireframePosition = lua_check_vec3(lua, 1);
+	return 0;
+}
+
+static int l_wireframe_set_rotation(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	vm->wireframeRotation = lua_check_euler(lua, 1);
 	return 0;
 }
 
 static int l_wireframe_set_color(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	vm->wireframeColor = check_color_opt_alpha(lua, 1);
+	vm->wireframeColor = lua_check_color_opt_alpha(lua, 1);
 	return 0;
 }
 
 static int l_wireframe_line_to(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	let nextPos = check_vec3(lua, 1);
+	let nextPos = lua_check_vec3(lua, 1);
 	gfx->DrawDebugLine(vm->wireframeColor, vm->wireframePosition, nextPos);
 	vm->wireframePosition = nextPos;
 	return 0;
 }
 
+static int l_wireframe_get_position(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	lua_pushvec3(lua, vm->wireframePosition);
+	return 3;
+}
+
+static int l_wireframe_draw_cube(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	let sz = lua_checkfloat(lua, 1);
+	let pos = vm->wireframePosition;
+	let rot = vm->wireframeRotation;
+	let col = vm->wireframeColor;
+
+	// draw bottom
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(sz, -sz, -sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(-sz, sz, -sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(sz, -sz, -sz), pos + rot * vec3(sz, sz, -sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, sz, -sz), pos + rot * vec3(sz, sz, -sz));
+
+	// draw top
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, -sz, sz), pos + rot * vec3(sz, -sz, sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, -sz, sz), pos + rot * vec3(-sz, sz, sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(sz, -sz, sz), pos + rot * vec3(sz, sz, sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, sz, sz), pos + rot * vec3(sz, sz, sz));
+
+	// draw connections
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(-sz, -sz, sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(sz, -sz, -sz), pos + rot * vec3(sz, -sz, sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(-sz, sz, -sz), pos + rot * vec3(-sz, sz, sz));
+	gfx->DrawDebugLine(col, pos + rot * vec3(sz, sz, -sz), pos + rot * vec3(sz, sz, sz));
+
+	return 0;
+}
+
 #else
 static int l_wireframe_set_position(lua_State* lua) { return 0; }
+static int l_wireframe_set_rotation(lua_State* lua) { return 0; }
 static int l_wireframe_set_color(lua_State* lua) { return 0; }
 static int l_wireframe_line_to(lua_State* lua) { return 0; }
+static int l_wireframe_get_position(lua_State* lua) { lua_pushvec3(lua, vec3(0,0,0)); return 3; }
+static ine l_wireframe_draw_cube(lua_State* lua) { return 0; }
 #endif
 
 static const struct luaL_Reg lib_wireframe[] = {
 	{ "set_position", l_wireframe_set_position },
+	{ "set_rotation", l_wireframe_set_rotation },
 	{ "set_color",    l_wireframe_set_color    },
 	{ "line_to",      l_wireframe_line_to      },
+	{ "get_position", l_wireframe_get_position },
+	{ "draw_cube",    l_wireframe_draw_cube    },
 	{ nullptr, nullptr }
 };
 

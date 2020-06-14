@@ -35,6 +35,7 @@ public:
 #if TRINKET_TEST
 	vec3 wireframePosition = vec3(0, 0, 0);
 	vec4 wireframeColor = vec4(1, 1, 1, 1);
+	quat wireframeRotation = quat(1,0,0,0);
 #endif
 
 };
