@@ -11,9 +11,6 @@
 
 #include "Math.h"
 
-#define TEX_FORMAT_SHADOW_MAP TEX_FORMAT_D16_UNORM;
-#define SHADOW_MAP_DEBUG 0
-
 
 void GraphicsDebugMessageCallback(
 	enum DEBUG_MESSAGE_SEVERITY Severity,
@@ -25,7 +22,6 @@ void GraphicsDebugMessageCallback(
 	using namespace std;
 	cout << "[GRAPHICS] " << Message << endl;
 }
-
 
 Graphics::Graphics(SkelRegistry* aSkel, SDL_Window* aWindow) 
 	: pSkel(aSkel)
@@ -153,7 +149,7 @@ void Graphics::InitSceneRenderer() {
 		pShadowPipelineState->CreateShaderResourceBinding(&pShadowResourceBinding, true);
 	}
 
-#if SHADOW_MAP_DEBUG
+	#if SHADOW_MAP_DEBUG
 	// shadowmap viz pso
 	{
 		PipelineStateCreateInfo PSOCreateInfo;
@@ -200,7 +196,77 @@ void Graphics::InitSceneRenderer() {
 		pShadowMapDebugPSO->CreateShaderResourceBinding(&pShadowMapDebugSRB, true);
 		pShadowMapDebugSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_ShadowMap")->Set(pShadowMapSRV);
 	}
-#endif
+	#endif
+
+	#if TRINKET_TEST
+	// debug wireframe
+	{
+		// Wireframe PSO
+		PipelineStateCreateInfo Args;
+		PipelineStateDesc& PSODesc = Args.PSODesc;
+		PSODesc.Name = "PSO_DebugWireframe";
+		PSODesc.IsComputePipeline = false;
+		PSODesc.GraphicsPipeline.NumRenderTargets = 1;
+		PSODesc.GraphicsPipeline.RTVFormats[0] = pSwapChain->GetDesc().ColorBufferFormat;
+		PSODesc.GraphicsPipeline.DSVFormat = pSwapChain->GetDesc().DepthBufferFormat;
+		PSODesc.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_LINE_LIST;
+		PSODesc.GraphicsPipeline.RasterizerDesc.CullMode = CULL_MODE_NONE;
+		PSODesc.GraphicsPipeline.DepthStencilDesc.DepthEnable = false;
+
+		ShaderCreateInfo SCI;
+		SCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+		SCI.UseCombinedTextureSamplers = true; // For GL Compat
+		SCI.pShaderSourceStreamFactory = GetShaderSourceStream();
+		RefCntAutoPtr<IShader> pVS;
+		{
+			SCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
+			SCI.EntryPoint = "main";
+			SCI.Desc.Name = "VS_DebugWireframe";
+			SCI.FilePath = "wireframe.vsh";
+			pDevice->CreateShader(SCI, &pVS);
+			DEBUG_ASSERT(pVS);
+		}
+		RefCntAutoPtr<IShader> pPS;
+		{
+			SCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
+			SCI.EntryPoint = "main";
+			SCI.Desc.Name = "PS_DebugWireframe";
+			SCI.FilePath = "wireframe.psh";
+			pDevice->CreateShader(SCI, &pPS);
+			DEBUG_ASSERT(pPS);
+		}
+
+		const LayoutElement WireframeLayoutElems[2]{
+			LayoutElement{ 0, 0, 3, VT_FLOAT32, false },
+			LayoutElement{ 1, 0, 4, VT_FLOAT32, false },
+		};
+
+		PSODesc.GraphicsPipeline.InputLayout.LayoutElements = WireframeLayoutElems;
+		PSODesc.GraphicsPipeline.InputLayout.NumElements = _countof(WireframeLayoutElems);
+		PSODesc.GraphicsPipeline.pVS = pVS;
+		PSODesc.GraphicsPipeline.pPS = pPS;
+
+		PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
+		PSODesc.ResourceLayout.NumVariables = 0;
+		PSODesc.ResourceLayout.NumStaticSamplers = 0;
+
+		pDevice->CreatePipelineState(Args, &pDebugWireframePSO);
+		DEBUG_ASSERT(pDebugWireframePSO);
+
+		pDebugWireframePSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(GetRenderConstants());
+		pDebugWireframePSO->CreateShaderResourceBinding(&pDebugWireframeSRB, true);
+
+		// Wireframe Vertex Buffer
+		BufferDesc VBD;
+		VBD.Name = "VB_DebugWireframe";
+		VBD.Usage = USAGE_DEFAULT; //USAGE_DYNAMIC;
+		VBD.BindFlags = BIND_VERTEX_BUFFER;
+		VBD.uiSizeInBytes = sizeof(lineBuf);
+		pDevice->CreateBuffer(VBD, nullptr, &pDebugWireframeBuf);
+		DEBUG_ASSERT(pDebugWireframeBuf);
+	}
+	#endif
+
 }
 
 Material* Graphics::CreateMaterial(Name name, const MaterialArgs& Args) {
@@ -278,8 +344,23 @@ const RenderMeshData* Graphics::GetRenderMeshFor(ObjectID id) const {
 
 bool Graphics::TryReleaseRenderMeshFor(ObjectID id) {
 	// TODO
-	//return meshRenderers.TryReleaseObject_Swap(id);
 	return false;
+}
+
+void Graphics::DrawDebugLine(const vec4& color, const vec3& start, const vec3& end) {
+#if TRINKET_TEST
+
+	if (lineCount >= DEBUG_LINE_CAPACITY)
+		return;
+
+	let idx = lineCount << 1;
+	lineBuf[idx].position = start;
+	lineBuf[idx].color = color;
+	lineBuf[idx+1].position = end;
+	lineBuf[idx+1].color = color;
+	++lineCount;
+
+#endif
 }
 
 void Graphics::HandleEvent(const SDL_Event& ev) {
@@ -403,7 +484,35 @@ void Graphics::Draw() {
 		itemIdx += pass.itemCount;
 	}
 
-#if SHADOW_MAP_DEBUG
+	#if TRINKET_TEST
+	if (lineCount > 0) {
+	
+		pContext->UpdateBuffer(pDebugWireframeBuf, 0, sizeof(WireframeVertex)* (lineCount << 1), lineBuf, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+		pContext->SetPipelineState(pDebugWireframePSO);
+		pContext->CommitShaderResources(pDebugWireframeSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+		uint32 offset = 0;
+		IBuffer* pBuffers[]{ pDebugWireframeBuf };
+		pContext->SetVertexBuffers(0, 1, pBuffers, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
+		{
+			MapHelper<RenderConstants> CBConstants(pContext, pRenderConstants, MAP_WRITE, MAP_FLAG_DISCARD);
+			CBConstants->ModelViewProjectionTransform = viewProjection;
+			CBConstants->ModelViewTransform = view;
+			CBConstants->ModelTransform = glm::identity<mat4>();
+			CBConstants->NormalTransform = glm::identity<mat3>();
+			//CBConstants->WorldToShadowMapUVDepth = worldToShadowMapUVDepth;
+			//CBConstants->LightDirection = vec4(lightz, 0);
+		}
+
+		DrawAttribs draw;
+		draw.NumVertices = lineCount << 1;
+		pContext->Draw(draw);
+		lineCount = 0;
+	}
+
+	#endif
+
+	#if SHADOW_MAP_DEBUG
 	// draw shadow debug
 	{
 		pContext->SetPipelineState(pShadowMapDebugPSO);
@@ -411,6 +520,6 @@ void Graphics::Draw() {
 		DrawAttribs DrawAttrs(4, DRAW_FLAG_VERIFY_ALL);
 		pContext->Draw(DrawAttrs);
 	}
-#endif
+	#endif
 
 }

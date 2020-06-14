@@ -3,12 +3,16 @@
 
 #pragma once
 
+#define TRINKET_EDITOR 1
+#define TRINKET_TEST 1
+
 #define let const auto
+#define INVALID_INDEX (-1)
+enum class ForceInit { Default };
 
 #define GLM_FORCE_LEFT_HANDED 1
 #define GLM_FORCE_INTRINSICS 1
 #include <glm/fwd.hpp>
-
 typedef glm::int8    int8;
 typedef glm::int16   int16;
 typedef glm::int32   int32;
@@ -28,16 +32,10 @@ typedef glm::quat    quat;
 typedef glm::ivec2   ivec2;
 typedef glm::uvec2   uvec2;
 
-#define INVALID_INDEX (-1)
-#define TRINKET_EDITOR 1
-#define TRINKET_TEST 1
-
-enum class ForceInit { Default };
-
 #if _DEBUG
-#include <cassert>
-#define DEBUG_ASSERT(x) assert(x)
+#	include <cassert>
+#	define DEBUG_ASSERT(x) assert(x)
 #else
-#define DEBUG_ASSERT(x)
+#	define DEBUG_ASSERT(x)
 #endif
 

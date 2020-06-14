@@ -7,8 +7,8 @@
 const LayoutElement MeshVertexLayoutElems[4] {
 	LayoutElement{ 0, 0, 3, VT_FLOAT32, false },
 	LayoutElement{ 1, 0, 3, VT_FLOAT32, false },
-	LayoutElement{ 2, 0, 4, VT_FLOAT32, false },
-	LayoutElement{ 3, 0, 2, VT_FLOAT32, false }
+	LayoutElement{ 2, 0, 2, VT_FLOAT32, false },
+	LayoutElement{ 3, 0, 4, VT_FLOAT32, false },
 };
 
 
@@ -68,7 +68,7 @@ bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic) {
 		let vertexByteCount = static_cast<Uint32>(sizeof(MeshVertex) * allocVertexCount);
 		BufferDesc VBD;
 		VBD.Name = "VB_Mesh"; // get name for mesh?
-		VBD.Usage = aDynamic ? USAGE_DYNAMIC : USAGE_STATIC;
+		VBD.Usage = aDynamic ? USAGE_DEFAULT : USAGE_STATIC;
 		VBD.BindFlags = BIND_VERTEX_BUFFER;
 		VBD.uiSizeInBytes = vertexByteCount;
 		BufferData buf;
@@ -148,10 +148,10 @@ void SubMesh::AllocPlaneXY(float extent) {
 	AllocVertices(4);
 	AllocIndices(6);
 
-	vertices[0] = { vec3(-extent, -extent, 0), vec3(0, 0, 1), vec4(1, 1, 1, 1), vec2(0, 0) };
-	vertices[1] = { vec3( extent, -extent, 0), vec3(0, 0, 1), vec4(1, 1, 1, 1), vec2(1, 0) };
-	vertices[2] = { vec3( extent,  extent, 0), vec3(0, 0, 1), vec4(1, 1, 1, 1), vec2(1, 1) };
-	vertices[3] = { vec3(-extent,  extent, 0), vec3(0, 0, 1), vec4(1, 1, 1, 1), vec2(0, 1) };
+	vertices[0] = { vec3(-extent, -extent, 0), vec3(0, 0, 1), vec2(0, 0), vec4(1, 1, 1, 1) };
+	vertices[1] = { vec3( extent, -extent, 0), vec3(0, 0, 1), vec2(1, 0), vec4(1, 1, 1, 1) };
+	vertices[2] = { vec3( extent,  extent, 0), vec3(0, 0, 1), vec2(1, 1), vec4(1, 1, 1, 1) };
+	vertices[3] = { vec3(-extent,  extent, 0), vec3(0, 0, 1), vec2(0, 1), vec4(1, 1, 1, 1) };
 
 	index[0] = 0;
 	index[1] = 1;

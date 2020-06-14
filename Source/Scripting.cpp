@@ -75,6 +75,15 @@ static vec3 check_vec3(lua_State* lua, int narg) {
 	); 
 }
 
+static vec4 check_color_opt_alpha(lua_State* lua, int narg) { 
+	vec4 result;
+	result.r = lua_checkfloat(lua, narg);
+	result.g = lua_checkfloat(lua, narg+1);
+	result.b = lua_checkfloat(lua, narg+2);
+	result.a = narg+3 > lua_gettop(lua) ? 1.f : lua_checkfloat(lua, narg+3);
+	return result;
+}
+
 
 //------------------------------------------------------------------------------------------
 // script entry-points
@@ -390,7 +399,7 @@ static int l_set_time_dilation(lua_State* lua) {
 	return 0;
 }
 
-static const struct luaL_Reg trinketLib[] = {
+static const struct luaL_Reg lib_trinket[] = {
 	{ "log",                  l_log                  },
 	{ "is_valid",             l_is_valid             },
 	
@@ -439,6 +448,41 @@ static const struct luaL_Reg trinketLib[] = {
 	{ nullptr, nullptr }
 };
 
+#if TRINKET_TEST
+
+static int l_wireframe_set_position(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	vm->wireframePosition = check_vec3(lua, 1);
+	return 0;
+}
+
+static int l_wireframe_set_color(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	vm->wireframeColor = check_color_opt_alpha(lua, 1);
+	return 0;
+}
+
+static int l_wireframe_line_to(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	let nextPos = check_vec3(lua, 1);
+	gfx->DrawDebugLine(vm->wireframeColor, vm->wireframePosition, nextPos);
+	vm->wireframePosition = nextPos;
+	return 0;
+}
+
+#else
+static int l_wireframe_set_position(lua_State* lua) { return 0; }
+static int l_wireframe_set_color(lua_State* lua) { return 0; }
+static int l_wireframe_line_to(lua_State* lua) { return 0; }
+#endif
+
+static const struct luaL_Reg lib_wireframe[] = {
+	{ "set_position", l_wireframe_set_position },
+	{ "set_color",    l_wireframe_set_color    },
+	{ "line_to",      l_wireframe_line_to      },
+	{ nullptr, nullptr }
+};
+
 }
 
 #undef SCRIPT_PREAMBLE
@@ -458,7 +502,8 @@ ScriptVM::ScriptVM(Input* aInput, Graphics* aGraphics, Physics* aPhysics)
 	DEBUG_ASSERT(lua != nullptr);
 	*static_cast<ScriptVM**>(lua_getextraspace(lua)) = this;
 	luaL_openlibs(lua);
-	luaL_register(lua, "trinket", trinketLib);
+	luaL_register(lua, "trinket", lib_trinket);
+	luaL_register(lua, "wireframe", lib_wireframe);
 }
 
 ScriptVM::~ScriptVM() {

@@ -1,0 +1,5 @@
+#include "common.fxh"
+
+void main(in  WireframePSInput Input, out PSOutput Output) {
+	Output.Color = Input.Color;
+}

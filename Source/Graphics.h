@@ -7,6 +7,17 @@
 #include "Mesh.h"
 #include "Texture.h"
 
+// compile-time graphics config
+#ifndef TEX_FORMAT_SHADOW_MAP
+#	define TEX_FORMAT_SHADOW_MAP TEX_FORMAT_D16_UNORM
+#endif
+#ifndef SHADOW_MAP_DEBUG
+#	define SHADOW_MAP_DEBUG 0
+#endif
+#ifndef DEBUG_LINE_CAPACITY
+#	define DEBUG_LINE_CAPACITY 1024
+#endif
+
 // TODO: Implement IAssetListener to detect releases
 
 struct CameraPOV {
@@ -83,6 +94,8 @@ public:
 	const RenderMeshData* GetRenderMeshFor(ObjectID id) const;
 	bool TryReleaseRenderMeshFor(ObjectID id);
 
+	void DrawDebugLine(const vec4& color, const vec3& start, const vec3& end);
+
 private:
 
 	void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override;
@@ -141,9 +154,26 @@ private:
 		int itemCount;
 	};
 
+
 	eastl::vector<RenderPass> passes;
 	eastl::vector<RenderItem> items;
 	eastl::vector<mat4> matrices;
 
+#if TRINKET_TEST
+
+	struct WireframeVertex {
+		vec3 position;
+		vec4 color;
+	};
+
+	RefCntAutoPtr<IPipelineState> pDebugWireframePSO;
+	RefCntAutoPtr<IShaderResourceBinding> pDebugWireframeSRB;
+	RefCntAutoPtr<IBuffer>        pDebugWireframeBuf;
+
+	// TODO: double buffer (for multithreading?)
+	uint32 lineCount = 0;
+	WireframeVertex lineBuf[2 * DEBUG_LINE_CAPACITY];
+
+#endif
 };
 

@@ -9,8 +9,8 @@
 struct MeshVertex {
 	vec3 position;
 	vec3 normal;
-	vec4 color;
 	vec2 uv;
+	vec4 color;
 };
 
 extern const LayoutElement MeshVertexLayoutElems[4];

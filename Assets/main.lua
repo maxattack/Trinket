@@ -75,6 +75,15 @@ function tick(dt)
 		5 * ly * dt
 	)
 
+	-- wireframe test
+	wireframe.set_color(1, 1, 0)
+	wireframe.set_position(0,0,0)
+	wireframe.line_to(0,1,0)
+	wireframe.line_to(1,1,0)
+	wireframe.line_to(1,0,0)
+	wireframe.line_to(0.5,0,0)
+	wireframe.line_to(0.5,0.5, 0)
+
 end
 
 trinket.log "...World"

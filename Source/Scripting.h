@@ -31,4 +31,10 @@ public:
 
 	void RunScript(const char* path);
 	void Tick();
+
+#if TRINKET_TEST
+	vec3 wireframePosition = vec3(0, 0, 0);
+	vec4 wireframeColor = vec4(1, 1, 1, 1);
+#endif
+
 };

@@ -66,10 +66,10 @@ union ObjectID {
 };
 
 // "Objects" are a logical concept, so there's no requirement for object-components
-// to subtype the following interface. It exists only  to eliminate boilerplate and 
-// automate free()ing pointers when removed from an ObjectPool.
-
-// Maybe give it a more narrowly-tailored name? PoolOwnedComponent?
+// to subtype the following interface. You can just add any copy or move-able 
+// value to an object pool. However, sometimes we'd like to reference these 
+// components directly with a pointer, in which case the following base-type
+// automates including heap-pointers in object pools which are auto free()ed.
 
 class ObjectComponent {
 private:
@@ -89,6 +89,7 @@ public:
 };
 
 // Wrappers for new/delete
+// TODO: tag for objects that can be "recycled"?
 template<class T, class... Args>
 inline T* NewObjectComponent(Args&&... args) {
 	static_assert(std::is_convertible<T*, ObjectComponent*>::value);

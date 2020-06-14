@@ -2,8 +2,8 @@
 struct VSInput {
     float3 Pos    : ATTRIB0;
     float3 Normal : ATTRIB1;
-    float4 Color  : ATTRIB2;
-    float2 UV     : ATTRIB3;
+    float2 UV     : ATTRIB2;
+    float4 Color  : ATTRIB3;
 };
 
 struct PSInput { 
@@ -32,3 +32,14 @@ cbuffer Constants {
     float4x4 g_WorldToShadowMapUVDepth;
     float4   g_LightDirection;    
 };
+
+struct WireframeVSInput {
+    float3 Pos : ATTRIB0;
+    float4 Color : ATTRIB1;
+};
+
+struct WireframePSInput {
+    float4 Pos : SV_POSITION;
+    float4 Color : COLOR0;
+};
+
