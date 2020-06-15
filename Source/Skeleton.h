@@ -8,37 +8,66 @@
 #include "World.h"
 #include "Listener.h"
 
-// skeleton registry is a subsystem that's shared between the 
-// graphics system (for rendering skinned meshes), and the
-// animation system (for posing character rigs).
+// Only need 16-bits to index a skeleton
+typedef int16 skel_idx_t;
 
-typedef int16 joint_idx_t;
+// skeleton pure helper functions
+namespace Skel {
+
+	void CalcWorldSpacePose(HPose* outWorldPoses, const HPose& skelToWorld, const HPose* inLocalPoses, const skel_idx_t* inParents, int n);
+}
 
 class SkelAsset : public ObjectComponent {
 public:
-	SkelAsset(ObjectID aID) : ObjectComponent(aID) {}
+	SkelAsset(ObjectID aID) noexcept : ObjectComponent(aID) {}
+	~SkelAsset();
+
+	bool IsAllocated() const { return pNames != nullptr; }
+	bool TryAlloc(int count);
+	bool TryDealloc();
+
+	int NumBones() const { return nbones; }
+	bool InRange(skel_idx_t idx) const { return idx >= 0 && idx < nbones; }
+	Name GetName(skel_idx_t idx) const { DEBUG_ASSERT(InRange(idx)); return pNames[idx]; }
+	skel_idx_t FindBone(Name name) const;
+	skel_idx_t GetParent(skel_idx_t idx) const { DEBUG_ASSERT(InRange(idx)); return pParents[idx]; }
+	const HPose& GetLocalRestPose(skel_idx_t idx) const { DEBUG_ASSERT(InRange(idx)); return pLocalPoses[idx]; }
+
+	void SetName(skel_idx_t idx, Name name);
+	void SetParent(skel_idx_t idx, skel_idx_t parent);
+	void SetLocalRestPose(skel_idx_t idx, const HPose& pose);
 
 private:
-	enum Components { C_NAME, C_PARENT, C_REST_POSE };
-	eastl::tuple_vector<Name, joint_idx_t, HPose> bones;
+	int32 nbones = 0;
+	HPose* pLocalPoses = nullptr;
+	Name* pNames = nullptr;
+	skel_idx_t* pParents = nullptr;
 
+	friend class Skeleton;
 };
 
 class Skeleton : public ObjectComponent {
 public:
 
-	Skeleton(ObjectID aID, SkelAsset* asset) 
-		: ObjectComponent(aID) 
-		, pAsset(asset)
-	{}
+	Skeleton(ObjectID aID, SkelAsset* asset) noexcept;
+	~Skeleton();
 
 	SkelAsset* GetSkelAsset() const { return pAsset; }
+
+	void ResetRestPoses();
+	const HPose& GetObjectPose(skel_idx_t idx) const { DEBUG_ASSERT(pAsset->InRange(idx)); return pObjectPoses[idx]; }
 
 private:
 
 	SkelAsset* pAsset;
+	HPose* pObjectPoses = nullptr;
 
 };
+
+// skeleton registry is a subsystem that's shared between the 
+// graphics system (for rendering skinned meshes), and the
+// animation system (for posing character rigs).
+
 
 class ISkelRegistryListener {
 public:
@@ -78,9 +107,9 @@ private:
 	World* pWorld;
 
 	struct Socket {
-		ObjectID skelID;
-		joint_idx_t idx;
+		Skeleton* pSkeleton;
 		HPose relativePose;
+		skel_idx_t idx;
 	};
 
 	ObjectPool<SkelAsset*> assets;

@@ -81,7 +81,7 @@ ObjectID World::FindObject(Name name) const {
 }
 
 void World::Hierarchy_DidAddObject(Hierarchy* hierarchy, ObjectID id) {
-	sceneObjects.TryAppendObject(id, hierarchy->ID());
+	sceneObjects.TryAppendObject(id, SceneComponent { hierarchy });
 }
 
 void World::Hierarchy_WillRemoveObject(Hierarchy* hierarchy, ObjectID id) {

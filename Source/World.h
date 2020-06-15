@@ -31,9 +31,13 @@ private:
 	enum SublevelComponent { C_HIERARCHY = 1 };
 	enum SceneComponents { C_SUBLEVEL = 1 };
 
+	struct SceneComponent {
+		Hierarchy* pHierarchy;
+	};
+
 	ObjectMgr<Name> mgr;
 	ObjectPool<Hierarchy*> sublevels;
-	ObjectPool<ObjectID> sceneObjects;
+	ObjectPool<SceneComponent> sceneObjects;
 	ListenerList<IWorldListener> listeners;
 
 public:
@@ -65,8 +69,8 @@ public:
 	Hierarchy* GetHierarchy(ObjectID id) { return DerefPP(sublevels.TryGetComponent<C_HIERARCHY>(id)); }
 	Hierarchy* GetHierarchyByIndex(int32 idx) { return *sublevels.GetComponentByIndex<C_HIERARCHY>(idx); }
 
-	ObjectID GetSublevel(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? *result : OBJECT_NIL; }
-	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { return DerefPP(sublevels.TryGetComponent<C_HIERARCHY>(GetSublevel(id))); }
+	ObjectID GetSublevel(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->pHierarchy->ID() : OBJECT_NIL; }
+	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->pHierarchy : nullptr; }
 
 	void SanityCheck();
 

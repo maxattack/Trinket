@@ -53,7 +53,16 @@ struct RPose {
 	explicit RPose(quat aRotation, vec3 aPosition) noexcept : rotation(aRotation), position(aPosition) {}
 	explicit RPose(const physx::PxTransform& px) noexcept : rotation(FromPx(px.q)), position(FromPx(px.p)) {}
 
-	mat4 ToMatrix() const { return glm::translate(position) * mat4(rotation); }
+	mat4 ToMatrix() const { 
+		//return glm::translate(position) * mat4(rotation); 
+		const mat3 result(rotation);
+		return mat4(
+			vec4(result[0], 0.f),
+			vec4(result[1], 0.f),
+			vec4(result[2], 0.f),
+			vec4(position, 1.f)
+		);
+	}
 	physx::PxTransform ToPX() const { return physx::PxTransform(ToPx(position), ToPx(rotation)); }
 
 	RPose operator*(const RPose& rhs) const { return RPose(rotation * rhs.rotation, position + rotation * (rhs.position)); }
@@ -110,7 +119,17 @@ struct HPose {
 	explicit HPose(quat aRotation, vec3 aPosition, vec3 aScale) noexcept : rotation(aRotation), position(aPosition), scale(aScale) {}
 	explicit HPose(physx::PxTransform& px) noexcept : HPose(RPose(px)) {}
 
-	mat4 ToMatrix() const { return glm::translate(position) * mat4(rotation) * glm::scale(scale); }
+	mat4 ToMatrix() const { 
+		//return glm::translate(position) * mat4(rotation) * glm::scale(scale); 
+		const mat3 result(rotation);
+		return mat4(
+			vec4(scale.x * result[0], 0.f),
+			vec4(scale.y * result[1], 0.f),
+			vec4(scale.z * result[2], 0.f),
+			vec4(position, 1.f)
+		);
+	}
+
 	physx::PxTransform ToPX() const { return rpose.ToPX(); }
 
 	HPose operator*(const HPose& rhs) const {

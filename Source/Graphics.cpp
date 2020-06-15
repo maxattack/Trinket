@@ -487,7 +487,7 @@ void Graphics::Draw() {
 	#if TRINKET_TEST
 	if (lineCount > 0) {
 	
-		pContext->UpdateBuffer(pDebugWireframeBuf, 0, sizeof(WireframeVertex)* (lineCount << 1), lineBuf, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+		pContext->UpdateBuffer(pDebugWireframeBuf, 0, sizeof(WireframeVertex)* (lineCount + lineCount), lineBuf, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 		pContext->SetPipelineState(pDebugWireframePSO);
 		pContext->CommitShaderResources(pDebugWireframeSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
