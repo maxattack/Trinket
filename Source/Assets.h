@@ -47,7 +47,9 @@ public:
 
 	void Reset() {
 		ptr = nullptr;
+		#if TRINKET_CHECKED	
 		id = OBJECT_NIL;
+		#endif
 	}
 };
 
