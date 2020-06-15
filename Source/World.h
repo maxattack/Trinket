@@ -11,6 +11,49 @@
 class World;
 
 //------------------------------------------------------------------------------------------
+// Weak-ptr wrapper to check for use-after-free
+
+template<typename T>
+class WorldRef {
+private:
+	T* ptr;
+	#if TRINKET_CHECKED
+	ObjectID id;
+	#endif
+
+public:
+	WorldRef() noexcept = default;
+	WorldRef(const WorldRef<T>&) noexcept = default;
+	WorldRef(WorldRef<T>&&) noexcept = default;
+	WorldRef<T>& operator=(const WorldRef<T>&) noexcept = default;
+
+	WorldRef(ForceInit) noexcept
+		: ptr(nullptr) 
+	{
+		#if TRINKET_CHECKED	
+		id = OBJECT_NIL;
+		#endif
+	}
+
+	WorldRef(T* aPtr) noexcept
+		: ptr(aPtr)
+	{
+		#if TRINKET_CHECKED	
+		id = ptr->ID();
+		CHECK_ASSERT(!id.IsFingerprinted());
+		#endif
+	}
+
+	inline T* GetComponent(const World* pWorld);
+	inline T* GetComponent(const World* pWorld) const;
+
+	void Reset() {
+		ptr = nullptr;
+		id = OBJECT_NIL;
+	}
+};
+
+//------------------------------------------------------------------------------------------
 // Interface for listening to world events
 
 class IWorldListener {
@@ -31,13 +74,9 @@ private:
 	enum SublevelComponent { C_HIERARCHY = 1 };
 	enum SceneComponents { C_SUBLEVEL = 1 };
 
-	struct SceneComponent {
-		Hierarchy* pHierarchy;
-	};
-
 	ObjectMgr<Name> mgr;
-	ObjectPool<Hierarchy*> sublevels;
-	ObjectPool<SceneComponent> sceneObjects;
+	ObjectPool<StrongRef<Hierarchy>> sublevels;
+	ObjectPool<WorldRef<Hierarchy>> sceneObjects;
 	ListenerList<IWorldListener> listeners;
 
 public:
@@ -69,8 +108,8 @@ public:
 	Hierarchy* GetHierarchy(ObjectID id) { return DerefPP(sublevels.TryGetComponent<C_HIERARCHY>(id)); }
 	Hierarchy* GetHierarchyByIndex(int32 idx) { return *sublevels.GetComponentByIndex<C_HIERARCHY>(idx); }
 
-	ObjectID GetSublevel(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->pHierarchy->ID() : OBJECT_NIL; }
-	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->pHierarchy : nullptr; }
+	ObjectID GetSublevel(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->GetComponent(this)->ID() : OBJECT_NIL; }
+	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->GetComponent(this) : nullptr; }
 
 	void SanityCheck();
 
@@ -81,32 +120,16 @@ private:
 };
 
 //------------------------------------------------------------------------------------------
-// Component-pools that auto-remove released handles
+// WorldRef Impl
 
-//template<typename... Ts>
-//class OrderedWorldPool	: public ObjectPool<Ts...>, IWorldListener
-//{
-//private:
-//	World* pWorld;
-//
-//public:
-//
-//	OrderedWorldPool(World* aWorld) : pWorld(aWorld) { if (pWorld) pWorld->AddListener(this); }
-//	~OrderedWorldPool() { if (pWorld) pWorld->RemoveListener(this); }
-//
-//	void World_WillReleaseObject(World* caller, ObjectID id) override { this->TryReleaseObject_Shift(id); }
-//};
-//
-//template<typename... Ts>
-//class UnorderedWorldPool : public ObjectPool<Ts...>, IWorldListener
-//{
-//private:
-//	World* pWorld;
-//
-//public:
-//
-//	UnorderedWorldPool(World* aWorld) : pWorld(aWorld) { if (pWorld) pWorld->AddListener(this); }
-//	~UnorderedWorldPool() { if (pWorld) pWorld->RemoveListener(this); }
-//
-//	void World_WillReleaseObject(World* caller, ObjectID id) override { this->TryReleaseObject_Swap(id); }
-//};
+template<typename T>
+inline T* WorldRef<T>::GetComponent(const World* pWorld) {
+	CHECK_ASSERT(ptr == nullptr || pWorld->IsValid(id));
+	return ptr;
+}
+
+template<typename T>
+inline T* WorldRef<T>::GetComponent(const World* pWorld) const {
+	CHECK_ASSERT(ptr == nullptr || pWorld->IsValid(id));
+	return ptr;
+}

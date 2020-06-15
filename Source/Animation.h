@@ -60,8 +60,8 @@ public:
 private:
 
 	SkelRegistry* pRegistry;
-	ObjectPool<CharacterRig*> rigs;
-	ObjectPool<Animator*> animators;
+	ObjectPool<StrongRef<CharacterRig>> rigs;
+	ObjectPool<StrongRef<Animator>> animators;
 
 	void Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) override;
 	void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) override;

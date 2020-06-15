@@ -29,15 +29,15 @@ bool Hierarchy::HasChildren(ObjectID id) const {
 }
 
 bool Hierarchy::HasChildrenByIndex(int32 idx) const {
-	DEBUG_ASSERT(idx >= 0);
-	DEBUG_ASSERT(idx < Count());
+	CHECK_ASSERT(idx >= 0);
+	CHECK_ASSERT(idx < Count());
 	let lastIdx = Count() - 1;
 	return idx != lastIdx && GetParentIndexByIndex(idx + 1) == idx;
 }
 
 int32 Hierarchy::GetDescendentRangeByIndex(int32 startIndex) const {
-	DEBUG_ASSERT(startIndex >= 0);
-	DEBUG_ASSERT(startIndex < Count());
+	CHECK_ASSERT(startIndex >= 0);
+	CHECK_ASSERT(startIndex < Count());
 	int32 result = startIndex + 1;
 	let pParents = pool.GetComponentData<C_PARENT>();
 	let count = Count();
@@ -57,8 +57,8 @@ int32 Hierarchy::GetDepth(ObjectID id) const {
 }
 
 int32 Hierarchy::GetDepthByIndex(int32 idx) const {
-	DEBUG_ASSERT(idx >= 0);
-	DEBUG_ASSERT(idx < Count());
+	CHECK_ASSERT(idx >= 0);
+	CHECK_ASSERT(idx < Count());
 	int32 result = 0;
 	let pParents = pool.GetComponentData<C_PARENT>();
 	while(pParents[idx] != INVALID_INDEX) {
@@ -381,11 +381,11 @@ void Hierarchy::SanityCheck() {
 	let n = pool.Count();
 
 	for(int it=0; it<n; ++it) {
-		DEBUG_ASSERT(*pParent == INVALID_INDEX || *pParent < it);
-		DEBUG_ASSERT(!ContainsNaN(*pRelativePoses));
-		DEBUG_ASSERT(!ContainsNaN(*pWorldPoses));
-		DEBUG_ASSERT(IsNormalized(*pRelativePoses));
-		DEBUG_ASSERT(IsNormalized(*pWorldPoses));
+		CHECK_ASSERT(*pParent == INVALID_INDEX || *pParent < it);
+		CHECK_ASSERT(!ContainsNaN(*pRelativePoses));
+		CHECK_ASSERT(!ContainsNaN(*pWorldPoses));
+		CHECK_ASSERT(IsNormalized(*pRelativePoses));
+		CHECK_ASSERT(IsNormalized(*pWorldPoses));
 		++pParent;
 		++pRelativePoses;
 		++pWorldPoses;

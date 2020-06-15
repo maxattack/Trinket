@@ -7,14 +7,60 @@
 #include "ObjectPool.h"
 
 // TODO: Filesystem Abstraction (physfs?)
-
 class AssetDatabase;
+
+//------------------------------------------------------------------------------------------
+// Weak-ptr wrapper to check for use-after-free
+
+template<typename T>
+class AssetRef {
+private:
+	T* ptr;
+	#if TRINKET_CHECKED
+	ObjectID id;
+	#endif
+
+public:
+	AssetRef() noexcept = default;
+	AssetRef(const AssetRef<T>&) noexcept = default;
+	AssetRef(AssetRef<T>&&) noexcept = default;
+	AssetRef<T>& operator=(const AssetRef<T>&) noexcept = default;
+
+	AssetRef(ForceInit) noexcept
+		: ptr(nullptr) {
+		#if TRINKET_CHECKED	
+		id = OBJECT_NIL;
+		#endif
+	}
+
+	AssetRef(T* aPtr) noexcept
+		: ptr(aPtr) 
+	{
+		#if TRINKET_CHECKED	
+		id = ptr->ID();
+		CHECK_ASSERT(id.IsFingerprinted());
+		#endif
+	}
+
+	inline T* GetComponent(const AssetDatabase* pAssets);
+	inline T* GetComponent(const AssetDatabase* pAssets) const;
+
+	void Reset() {
+		ptr = nullptr;
+		id = OBJECT_NIL;
+	}
+};
+
+//------------------------------------------------------------------------------------------
+// Asset Event Listener Interface
 
 class IAssetListener {
 public:
 	virtual void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {}
 };
 
+//------------------------------------------------------------------------------------------
+// Asset Database
 
 class AssetDatabase {
 private:
@@ -43,3 +89,18 @@ public:
 	void TryRename(ObjectID id, Name name);
 
 };
+
+//------------------------------------------------------------------------------------------
+// AssetRef Impl
+
+template<typename T>
+inline T* AssetRef<T>::GetComponent(const AssetDatabase* pAssets) {
+	CHECK_ASSERT(ptr == nullptr || pAssets->IsValid(id));
+	return ptr;
+}
+
+template<typename T>
+inline T* AssetRef<T>::GetComponent(const AssetDatabase* pAssets) const {
+	CHECK_ASSERT(ptr == nullptr || pAssets->IsValid(id));
+	return ptr;
+}

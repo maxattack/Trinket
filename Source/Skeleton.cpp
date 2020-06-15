@@ -13,7 +13,7 @@ void Skel::CalcWorldSpacePose(HPose* outWorldPoses, const HPose& skelToWorld, co
 	outWorldPoses[0] = skelToWorld * inLocalPoses[0];
 	for(int it=1; it<n; ++it) {
 		let parent = inParents[it];
-		DEBUG_ASSERT(parent >= 0 && parent< n);
+		CHECK_ASSERT(parent >= 0 && parent< n);
 		outWorldPoses[it] = outWorldPoses[parent] * inLocalPoses[it];
 	}
 }
@@ -64,18 +64,18 @@ skel_idx_t SkelAsset::FindBone(Name name) const {
 }
 
 void SkelAsset::SetName(skel_idx_t idx, Name name) {
-	DEBUG_ASSERT(InRange(idx));
+	CHECK_ASSERT(InRange(idx));
 	pNames[idx] = name;
 }
 
 void SkelAsset::SetParent(skel_idx_t idx, skel_idx_t parent) {
-	DEBUG_ASSERT(idx > 0 && InRange(idx));
-	DEBUG_ASSERT(parent >= 0 && parent < idx);
+	CHECK_ASSERT(idx > 0 && InRange(idx));
+	CHECK_ASSERT(parent >= 0 && parent < idx);
 	pParents[idx] = parent;
 }
 
 void SkelAsset::SetLocalRestPose(skel_idx_t idx, const HPose& pose) {
-	DEBUG_ASSERT(InRange(idx));
+	CHECK_ASSERT(InRange(idx));
 	pLocalPoses[idx] = pose;
 }
 

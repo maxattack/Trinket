@@ -17,26 +17,26 @@ Physics::Physics(AssetDatabase* aAssets, World* aWorld)
 	, pWorld(aWorld)
 {
 	pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocatorCallback, gDefaultErrorCallback);
-	DEBUG_ASSERT(pFoundation != nullptr);
+	CHECK_ASSERT(pFoundation != nullptr);
 
 	PxTolerancesScale scale;
 	pPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *pFoundation, scale);
-	DEBUG_ASSERT(pPhysics != nullptr);
+	CHECK_ASSERT(pPhysics != nullptr);
 
 	#if TRINKET_EDITOR
 	pCooking = PxCreateCooking(PX_PHYSICS_VERSION, *pFoundation, PxCookingParams(scale));
-	DEBUG_ASSERT(pCooking != nullptr);
+	CHECK_ASSERT(pCooking != nullptr);
 	#endif
 
 	pDispatcher = PxDefaultCpuDispatcherCreate(2);
-	DEBUG_ASSERT(pDispatcher != nullptr);
+	CHECK_ASSERT(pDispatcher != nullptr);
 
 	PxSceneDesc sceneDesc(scale);
 	sceneDesc.gravity = PxVec3(0.f, -10.f, 0.f);
 	sceneDesc.cpuDispatcher = pDispatcher;
 	sceneDesc.filterShader = PxDefaultSimulationFilterShader;
 	pDefaultScene = pPhysics->createScene(sceneDesc);
-	DEBUG_ASSERT(pDefaultScene != nullptr);
+	CHECK_ASSERT(pDefaultScene != nullptr);
 
 	pDefaultMaterial = pPhysics->createMaterial(0.5f, 0.5f, 0.5f);
 }
@@ -66,7 +66,7 @@ void Physics::TryAddGroundPlane() {
 }
 
 bool Physics::TryAttachRigidbodyTo(ObjectID id) {
-	DEBUG_ASSERT(pWorld->IsValid(id));
+	CHECK_ASSERT(pWorld->IsValid(id));
 	if (rigidBodies.Contains(id))
 		return false;
 

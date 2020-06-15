@@ -224,7 +224,7 @@ void Graphics::InitSceneRenderer() {
 			SCI.Desc.Name = "VS_DebugWireframe";
 			SCI.FilePath = "wireframe.vsh";
 			pDevice->CreateShader(SCI, &pVS);
-			DEBUG_ASSERT(pVS);
+			CHECK_ASSERT(pVS);
 		}
 		RefCntAutoPtr<IShader> pPS;
 		{
@@ -233,7 +233,7 @@ void Graphics::InitSceneRenderer() {
 			SCI.Desc.Name = "PS_DebugWireframe";
 			SCI.FilePath = "wireframe.psh";
 			pDevice->CreateShader(SCI, &pPS);
-			DEBUG_ASSERT(pPS);
+			CHECK_ASSERT(pPS);
 		}
 
 		const LayoutElement WireframeLayoutElems[2]{
@@ -251,7 +251,7 @@ void Graphics::InitSceneRenderer() {
 		PSODesc.ResourceLayout.NumStaticSamplers = 0;
 
 		pDevice->CreatePipelineState(Args, &pDebugWireframePSO);
-		DEBUG_ASSERT(pDebugWireframePSO);
+		CHECK_ASSERT(pDebugWireframePSO);
 
 		pDebugWireframePSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(GetRenderConstants());
 		pDebugWireframePSO->CreateShaderResourceBinding(&pDebugWireframeSRB, true);
@@ -263,7 +263,7 @@ void Graphics::InitSceneRenderer() {
 		VBD.BindFlags = BIND_VERTEX_BUFFER;
 		VBD.uiSizeInBytes = sizeof(lineBuf);
 		pDevice->CreateBuffer(VBD, nullptr, &pDebugWireframeBuf);
-		DEBUG_ASSERT(pDebugWireframeBuf);
+		CHECK_ASSERT(pDebugWireframeBuf);
 	}
 	#endif
 
@@ -308,19 +308,16 @@ bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {
 	if (!pWorld->IsValid(id))
 		return false;
 
-	let pMesh = GetMesh(data.mesh);
+	Mesh* pMesh = data.pMesh.GetComponent(pAssets);
 	if (pMesh == nullptr)
 		return false;
 	
-	let pMaterial = GetMaterial(data.material);
+	Material* pMaterial = data.pMaterial.GetComponent(pAssets);
 	if (pMaterial == nullptr)
 		return false;
 
 	if (!meshRenderers.TryAppendObject(id, data))
 		return false;
-	
-	pAssets->AddRef(data.mesh);
-	pAssets->AddRef(data.material);
 
 	// add render items, update render passes
 	int itemIdx = 0;

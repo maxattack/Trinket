@@ -298,7 +298,9 @@ static int l_attach_rendermesh_to(lua_State* lua) {
 	let mesh = check_obj(lua, ObjectTag::MESH_ASSET, 2);
 	let material = check_obj(lua, ObjectTag::MATERIAL_ASSET, 3);
 	let shadow = lua_check_boolean_opt(lua, 4, true);
-	RenderMeshData rmd { mesh.id, material.id, shadow };	
+	let pMesh = gfx->GetMesh(mesh.id);
+	let pMaterial = gfx->GetMaterial(material.id);
+	RenderMeshData rmd { pMesh, pMaterial, shadow };	
 	let result = gfx->TryAttachRenderMeshTo(obj.id, rmd);
 	lua_pushboolean(lua, result);
 	return 1;
@@ -553,7 +555,7 @@ ScriptVM::ScriptVM(Input* aInput, Graphics* aGraphics, Physics* aPhysics)
 	, pPhysics(aPhysics)
 {
 	lua = luaL_newstate();
-	DEBUG_ASSERT(lua != nullptr);
+	CHECK_ASSERT(lua != nullptr);
 	*static_cast<ScriptVM**>(lua_getextraspace(lua)) = this;
 	luaL_openlibs(lua);
 	luaL_register(lua, "trinket", lib_trinket);

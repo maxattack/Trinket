@@ -3,8 +3,25 @@
 
 #pragma once
 
-#define TRINKET_EDITOR 1
-#define TRINKET_TEST 1
+// Include IMGUI editor?
+#ifndef TRINKET_EDITOR
+#	define TRINKET_EDITOR 1
+#endif
+
+// Include QA/Test features (e.g. wireframe debug-draw)
+#ifndef TRINKET_TEST
+#	define TRINKET_TEST 1
+#endif
+
+// Include Bounds/Reference Checkes?
+#ifndef TRINKET_CHECKED
+#	if _DEBUG
+#		define TRINKET_CHECKED 1
+#	else
+#		define TIRNKET_CHECKED 0
+#	endif
+#endif
+
 
 #define let const auto
 #define INVALID_INDEX (-1)
@@ -32,10 +49,10 @@ typedef glm::quat    quat;
 typedef glm::ivec2   ivec2;
 typedef glm::uvec2   uvec2;
 
-#if _DEBUG
+#if TRINKET_CHECKED
 #	include <cassert>
-#	define DEBUG_ASSERT(x) assert(x)
+#	define CHECK_ASSERT(x) assert(x)
 #else
-#	define DEBUG_ASSERT(x)
+#	define CHECK_ASSERT(x)
 #endif
 

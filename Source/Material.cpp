@@ -63,7 +63,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const Materia
 
 	PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-	DEBUG_ASSERT(args.numTextures < 16);
+	CHECK_ASSERT(args.numTextures < 16);
 
 	ShaderResourceVariableDesc Vars[16];
 	Vars[0] = { SHADER_TYPE_PIXEL, "g_ShadowMap", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };

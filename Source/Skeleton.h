@@ -28,10 +28,10 @@ public:
 
 	int NumBones() const { return nbones; }
 	bool InRange(skel_idx_t idx) const { return idx >= 0 && idx < nbones; }
-	Name GetName(skel_idx_t idx) const { DEBUG_ASSERT(InRange(idx)); return pNames[idx]; }
+	Name GetName(skel_idx_t idx) const { CHECK_ASSERT(InRange(idx)); return pNames[idx]; }
 	skel_idx_t FindBone(Name name) const;
-	skel_idx_t GetParent(skel_idx_t idx) const { DEBUG_ASSERT(InRange(idx)); return pParents[idx]; }
-	const HPose& GetLocalRestPose(skel_idx_t idx) const { DEBUG_ASSERT(InRange(idx)); return pLocalPoses[idx]; }
+	skel_idx_t GetParent(skel_idx_t idx) const { CHECK_ASSERT(InRange(idx)); return pParents[idx]; }
+	const HPose& GetLocalRestPose(skel_idx_t idx) const { CHECK_ASSERT(InRange(idx)); return pLocalPoses[idx]; }
 
 	void SetName(skel_idx_t idx, Name name);
 	void SetParent(skel_idx_t idx, skel_idx_t parent);
@@ -55,7 +55,7 @@ public:
 	SkelAsset* GetSkelAsset() const { return pAsset; }
 
 	void ResetRestPoses();
-	const HPose& GetObjectPose(skel_idx_t idx) const { DEBUG_ASSERT(pAsset->InRange(idx)); return pObjectPoses[idx]; }
+	const HPose& GetObjectPose(skel_idx_t idx) const { CHECK_ASSERT(pAsset->InRange(idx)); return pObjectPoses[idx]; }
 
 private:
 
@@ -112,8 +112,8 @@ private:
 		skel_idx_t idx;
 	};
 
-	ObjectPool<SkelAsset*> assets;
-	ObjectPool<Skeleton*> instances;
+	ObjectPool<StrongRef<SkelAsset>> assets;
+	ObjectPool<StrongRef<Skeleton>> instances;
 	ObjectPool<Socket> sockets;
 
 	void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override;

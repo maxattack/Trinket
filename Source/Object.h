@@ -77,19 +77,62 @@ private:
 
 public:
 	ObjectComponent(ObjectID aID) noexcept : id(aID) {}
-	ObjectComponent(ObjectComponent&&) = default;
+	ObjectComponent(ObjectComponent&&) noexcept = default;
+	ObjectComponent& operator=(ObjectComponent&&) noexcept = default;
 
 	// no copies
 	ObjectComponent(const ObjectComponent&) = delete;
-	ObjectComponent& operator=(const ObjectComponent&) = delete;
+	ObjectComponent& operator=(const ObjectComponent&)= delete;
 
 	virtual ~ObjectComponent() {}
 
 	ObjectID ID() const { return id; }
 };
 
+template<typename T>
+class StrongRef {
+private:
+	T* ptr;
+
+public:
+	StrongRef() noexcept : ptr(nullptr) {};
+	StrongRef(T* aPtr) noexcept : ptr(aPtr) {}
+
+	StrongRef& operator=(StrongRef<T>&& other) noexcept {
+		ptr = other.ptr;
+		other.ptr = nullptr;
+		return *this;
+	}
+
+	StrongRef(StrongRef<T>&& other) noexcept
+		: ptr(other.ptr) 
+	{
+		other.ptr = nullptr;
+	}
+
+	// no copy or assignment
+	StrongRef(const StrongRef<T>&) = delete;
+	StrongRef& operator=(const StrongRef<T>&) = delete;
+
+	~StrongRef() {
+		if (ptr)
+			FreeObjectComponent(ptr);
+	}
+
+	inline bool operator==(const T* rhs) { return ptr == rhs; }
+	inline bool operator!=(const T* rhs) { return ptr != rhs; }
+
+	inline T* operator->() { return ptr; }
+	inline const T* operator->() const { return ptr; }
+
+	inline operator T*() { return ptr; }
+	inline operator const T*() const { return ptr; }
+
+	inline T* Get() { return ptr; }
+	inline T* Get() const { return ptr; }
+};
+
 // Wrappers for new/delete
-// TODO: tag for objects that can be "recycled"?
 template<class T, class... Args>
 inline T* NewObjectComponent(Args&&... args) {
 	static_assert(std::is_convertible<T*, ObjectComponent*>::value);
@@ -99,15 +142,13 @@ inline void FreeObjectComponent(ObjectComponent* obj) {
 	delete obj;
 }
 
-// Generic method for releasing components
+// ptr-to-ptr null coalescing helpers
 template<typename T>
-void TryFreeObjectComponent(T&& p) {
-	if constexpr (std::is_convertible<T, ObjectComponent*>::value) {
-		FreeObjectComponent(p);
-	}
+inline T* DerefPP(StrongRef<T>* ppComponent) {
+	return ppComponent ? ppComponent->Get() : nullptr;
 }
-
 template<typename T>
 inline T* DerefPP(T** ppComponent) {
 	return ppComponent ? *ppComponent : nullptr;
 }
+

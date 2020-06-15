@@ -15,7 +15,7 @@ private:
 
 public:
 
-	ListenerList() {}
+	ListenerList() noexcept {}
 	
 	void TryAdd(T* listener) {
 		let it = std::find(listeners.begin(), listeners.end(), listener);

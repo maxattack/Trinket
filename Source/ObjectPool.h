@@ -88,8 +88,10 @@ private:
 	// reserve space up front to avoid a lot of memory-copies (even those are
 	// relatively fast, though, because it's a linear/direct access pattern).
 
+	typedef eastl::tuple_vector<ObjectID, Ts...> CompactObjectArray;
+
 	SparseObjectArray sparse;
-	eastl::tuple_vector<ObjectID, Ts...> compact;
+	CompactObjectArray compact;
 
 public:
 
@@ -99,8 +101,8 @@ public:
 	ObjectPool& operator=(const ObjectPool&) = default;
 
 	~ObjectPool() {
-		for(auto it : compact)
-			eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, it);	
+		//for(auto it : compact)
+		//	eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, it);	
 	}
 
 	bool IsEmpty() const { return compact.size() == 0; }
@@ -121,8 +123,8 @@ public:
 	template<int C> auto TryGetComponent(ObjectID id) const { let idx = IndexOf(id); return idx != INVALID_INDEX ? GetComponentByIndex<C>(idx) : nullptr; }
 	template<int C> auto& DoGetComponent(ObjectID id) { return *GetComponentByIndex<C>(IndexOf(id)); }
 	template<int C> auto& DoGetComponent(ObjectID id) const { return *GetComponentByIndex<C>(IndexOf(id)); }
-	template<int C> auto GetComponentByIndex(int32 idx) { DEBUG_ASSERT(InRange(idx)); return compact.get<C>() + idx; }
-	template<int C> auto GetComponentByIndex(int32 idx) const { DEBUG_ASSERT(InRange(idx)); return compact.get<C>() + idx; }
+	template<int C> auto GetComponentByIndex(int32 idx) { CHECK_ASSERT(InRange(idx)); return compact.get<C>() + idx; }
+	template<int C> auto GetComponentByIndex(int32 idx) const { CHECK_ASSERT(InRange(idx)); return compact.get<C>() + idx; }
 
 	void ReserveCompact(int32 count) { compact.reserve(count); }
 	void ShrinkCompact() { compact.shrink_to_fit(); }
@@ -137,21 +139,23 @@ public:
 		return INVALID_INDEX;
 	}
 	
-	bool TryAppendObject(ObjectID id, const Ts&... args) {
+	template <typename... As>
+	bool TryAppendObject(ObjectID id, As&&... args) {
 		if (id.IsNil() || Contains(id))
 			return false;
 
 		sparse.IncrementCount(id);
 		sparse.DoSetIndex(id, Count());
-		compact.push_back(id, args...); //compact.emplace_back(std::forward<ObjectID>(id), std::forward<Ts>(args)...);
+		compact.emplace_back(eastl::forward<ObjectID>(id), Ts(args)...); 
 		return true;
 	}
 	
-	bool TryInsertObjectAt(ObjectID id, int32 index, const Ts&... args) {
+	template <typename... As>
+	bool TryInsertObjectAt(ObjectID id, int32 index, As&&... args) {
 
 		// fast path?
 		if (index >= Count())
-			return TryAppendObject(id, args...); // std::forward<Ts>(args)...);
+			return TryAppendObject(id, args...); 
 
 		// early out?
 		if (index < 0 || id.IsNil() || Contains(id))
@@ -161,7 +165,7 @@ public:
 		sparse.DoSetIndex(id, index);
 
 		// insert + upshift
-		compact.insert(compact.begin() + index, id, args...); //compact.insert(compact.begin() + index, std::forward<ObjectID>(id), std::forward<Ts>(args)...);
+		compact.insert(compact.begin() + index, id, args...); // TODO: eastl::forward?
 		let pHandles = compact.get<0>();
 		let n = Count();
 		for(int it=index + 1; it<n; ++it)
@@ -170,14 +174,16 @@ public:
 		return true;
 	}
 
-	bool TryInsertObjectBefore(ObjectID id, ObjectID other, const Ts&... args) {
+	template <typename... As>
+	bool TryInsertObjectBefore(ObjectID id, ObjectID other, As&&... args) {
 		let idx = IndexOf(other);
-		return idx != INVALID_INDEX && TryInsertObjectAt(id, idx, args...); // std::forward<Ts>(args)...);
+		return idx != INVALID_INDEX && TryInsertObjectAt(id, idx, args...); // TODO: eastl::forward?
 	}
 	
-	bool TryInsertObjectAfter(ObjectID id, ObjectID other, const Ts&... args) {
+	template <typename... As>
+	bool TryInsertObjectAfter(ObjectID id, ObjectID other, As&&... args) {
 		let idx = IndexOf(other);
-		return idx != INVALID_INDEX && TryInsertObjectAt(id, idx + 1, args...); // std::forward<Ts>(args)...);
+		return idx != INVALID_INDEX && TryInsertObjectAt(id, idx + 1, args...); // TODO: eastl::forward?
 	}
 
 	void DoReleaseCompactRange_Shift(int32 idxStart, int32 idxEnd) {
@@ -192,8 +198,8 @@ public:
 		}
 
 		// erase compact range
-		for(auto it=itStart; it!=itEnd; ++it)
-			eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, *it);
+		//for(auto it=itStart; it!=itEnd; ++it)
+		//	eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, *it);
 
 		compact.erase(itStart, itEnd);
 
@@ -218,13 +224,18 @@ public:
 			return false;
 		
 		// free all ObjectComponent pointers
-		eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, compact[idx]);
+		//eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, compact[idx]);
 
 		// swap with end?
 		let lastIdx = count - 1;
 		if (idx < lastIdx) {
 			let tail = pHandles[lastIdx];
-			compact[idx] = eastl::move(compact.back());
+
+			//compact[idx] = eastl::move(compact[lastIdx]);
+
+			eastl::move_iterator mbegin(compact.begin());
+			mbegin[idx] = eastl::move(mbegin[lastIdx]);
+
 			sparse.DoSetIndex(tail, idx);
 		}
 
@@ -247,7 +258,7 @@ public:
 			return false;
 
 		// free all ObjectComponent pointers
-		eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, compact[idx]);
+		//eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, compact[idx]);
 
 		// erase + downshift
 		compact.erase(compact.begin() + idx);
@@ -263,8 +274,8 @@ public:
 	void Clear() {
 
 		// free all ObjectComponent pointers
-		for(auto it : compact)
-			eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, it);
+		//for(auto it : compact)
+		//	eastl::apply([](auto&... vs) { (TryFreeObjectComponent(vs), ...); }, it);
 
 		sparse.Clear();
 		compact.clear();

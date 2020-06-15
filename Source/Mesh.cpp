@@ -35,14 +35,14 @@ SubMesh::~SubMesh() {
 void SubMesh::AllocVertices(int vertexCount) {
 	allocVertexCount = vertexCount;
 	let newVertices = (MeshVertex*) realloc(vertices, vertexCount * sizeof(MeshVertex));
-	DEBUG_ASSERT(newVertices != nullptr);
+	CHECK_ASSERT(newVertices != nullptr);
 	vertices = newVertices;
 }
 
 void SubMesh::AllocIndices(int indexCount) {
 	allocIndexCount = indexCount;
 	let newIndex = (uint32*) realloc(index, indexCount * sizeof(uint32));
-	DEBUG_ASSERT(newIndex != nullptr);
+	CHECK_ASSERT(newIndex != nullptr);
 	index = newIndex;
 }
 
@@ -104,7 +104,7 @@ bool SubMesh::TryRelease(Graphics* gfx) {
 }
 
 void SubMesh::DoDraw(Graphics* gfx) {
-	DEBUG_ASSERT(IsLoaded());
+	CHECK_ASSERT(IsLoaded());
 
 	uint32 offset = 0;
 	IBuffer* pBuffers[]{ pVertexBuffer };

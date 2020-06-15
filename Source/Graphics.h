@@ -33,8 +33,8 @@ struct MeshComponentHandle {
 };
 
 struct RenderMeshData {
-	ObjectID mesh;
-	ObjectID material;
+	AssetRef<Mesh> pMesh;
+	AssetRef<Material> pMaterial;
 	bool castsShadow;
 };
 
@@ -113,9 +113,9 @@ private:
 	enum TextureAssetComponents { C_TEXTURE_ASSET=1 };
 	enum RenderMeshComponents { C_RENDER_MESH=1 };
 
-	ObjectPool<Mesh*> meshAssets;
-	ObjectPool<Texture*> textureAssets;
-	ObjectPool<Material*> materialAssets;
+	ObjectPool<StrongRef<Mesh>> meshAssets;
+	ObjectPool<StrongRef<Texture>> textureAssets;
+	ObjectPool<StrongRef<Material>> materialAssets;
 	ObjectPool<RenderMeshData> meshRenderers;
 
 	SDL_Window* pWindow;
