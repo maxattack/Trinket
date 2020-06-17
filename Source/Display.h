@@ -31,3 +31,32 @@ class Graphics;
 class Texture;
 class Material;
 class Mesh;
+
+class Display {
+public:
+
+	Display(const char* windowName);
+	~Display();
+
+	SDL_Window* GetWindow() { return pWindow; }
+
+	IRenderDevice* GetDevice() { return pDevice; }
+	IEngineFactory* GetEngineFactory() { return pEngineFactory; }
+	IDeviceContext* GetContext() { return pContext; }
+	ISwapChain* GetSwapChain() { return pSwapChain; }
+
+	float GetAspect() const { let& SCD = pSwapChain->GetDesc(); return float(SCD.Width) / float(SCD.Height); }
+
+	void HandleEvent(const SDL_Event& aEvent);
+
+
+private:
+
+	SDL_Window* pWindow;
+	RefCntAutoPtr<IRenderDevice>  pDevice;
+	RefCntAutoPtr<IDeviceContext> pContext;
+	RefCntAutoPtr<IEngineFactory> pEngineFactory;
+	RefCntAutoPtr<ISwapChain>     pSwapChain;
+
+
+};

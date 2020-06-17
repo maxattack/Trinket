@@ -2,7 +2,6 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #include "Graphics.h"
-#include "DiligentCore/Graphics/GraphicsEngineD3D12/interface/EngineFactoryD3D12.h"
 #include "DiligentCore/Graphics/GraphicsTools/interface/MapHelper.hpp"
 #include "DiligentCore/Graphics/GraphicsTools/interface/GraphicsUtilities.h"
 
@@ -12,78 +11,22 @@
 #include "Math.h"
 
 
-void GraphicsDebugMessageCallback(
-	enum DEBUG_MESSAGE_SEVERITY Severity,
-	const Char* Message,
-	const Char* Function,
-	const Char* File,
-	int Line) 
-{
-	using namespace std;
-	cout << "[GRAPHICS] " << Message << endl;
-}
-
-Graphics::Graphics(SkelRegistry* aSkel, SDL_Window* aWindow) 
-	: pSkel(aSkel)
+Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel) 
+	: pDisplay(aDisplay)
+	, pSkel(aSkel)
 	, pAssets(aSkel->GetAssets())
-	, pWorld(aSkel->GetWorld())
-	, pWindow(aWindow)
+	, pScene(aSkel->GetScene())
 	, pov{ RPose(ForceInit::Default), 60.f, 0.01f, 100000.f }
 	, lightDirection(0, -1, 0)
 {
 	pAssets->AddListener(this);
-	pWorld->AddListener(this);
+	pScene->AddListener(this);
 
-	HWND hwnd = GetActiveWindow(); // TODO: way to get this from pWindow?
+	let pDevice = GetDevice();
+	let pSwapChain = GetSwapChain();
+	let pContext = GetContext();
+	let pEngineFactory = pDisplay->GetEngineFactory();
 
-	// Rendering is routed through the Diligent Graphics API, which performs
-	// - Backend Abstraction
-	// - Debug Validation
-
-	// create device
-	EngineD3D12CreateInfo EngineCI;
-	EngineCI.DebugMessageCallback = &GraphicsDebugMessageCallback;
-#if _DEBUG
-	EngineCI.EnableDebugLayer = true;
-#endif
-	auto GetEngineFactoryD3D12 = LoadGraphicsEngineD3D12();
-	auto* pFactoryD3D12 = GetEngineFactoryD3D12();
-	pFactoryD3D12->CreateDeviceAndContextsD3D12(EngineCI, &pDevice, &pContext);
-	pEngineFactory = pFactoryD3D12;
-
-
-	// create swap chain
-	SwapChainDesc SCDesc;
-	pFactoryD3D12->CreateSwapChainD3D12(pDevice, pContext, SCDesc, FullScreenModeDesc{}, Win32NativeWindow{ hwnd }, &pSwapChain);
-	pSwapChain->SetMaximumFrameLatency(1);
-
-}
-
-Graphics::~Graphics() {
-	pAssets->RemoveListener(this);
-	pWorld->RemoveListener(this);
-	meshAssets.Clear();
-	if (pContext)
-		pContext->Flush();
-}
-
-void Graphics::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {
-	// TODO
-}
-
-void Graphics::World_WillReleaseObject(World* caller, ObjectID id) {
-	// TODO
-}
-
-void Graphics::Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) {
-	// TODO
-}
-
-void Graphics::Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) {
-	// TODO
-}
-
-void Graphics::InitSceneRenderer() {
 	// create the "shader source" (just use surface filesystem hook for now)
 	pEngineFactory->CreateDefaultShaderSourceStreamFactory("Assets", &pShaderSourceFactory);
 
@@ -130,7 +73,7 @@ void Graphics::InitSceneRenderer() {
 			ShaderCreateInfo SCI;
 			SCI.pShaderSourceStreamFactory = pShaderSourceFactory;
 			SCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-			SCI.UseCombinedTextureSamplers = true; 
+			SCI.UseCombinedTextureSamplers = true;
 			SCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
 			SCI.EntryPoint = "main";
 			SCI.Desc.Name = "VS_shadow";
@@ -166,14 +109,16 @@ void Graphics::InitSceneRenderer() {
 		ShaderCI.pShaderSourceStreamFactory = pShaderSourceFactory;
 		ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
 		ShaderCI.UseCombinedTextureSamplers = true;
-		RefCntAutoPtr<IShader> pShadowMapDebugVS; {
+		RefCntAutoPtr<IShader> pShadowMapDebugVS;
+		{
 			ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
 			ShaderCI.EntryPoint = "main";
 			ShaderCI.Desc.Name = "Shadow Map Vis VS";
 			ShaderCI.FilePath = "shadow_debug.vsh";
 			pDevice->CreateShader(ShaderCI, &pShadowMapDebugVS);
 		}
-		RefCntAutoPtr<IShader> pShadowMapDebugPS; {
+		RefCntAutoPtr<IShader> pShadowMapDebugPS;
+		{
 			ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
 			ShaderCI.EntryPoint = "main";
 			ShaderCI.Desc.Name = "Shadow Map Vis PS";
@@ -183,11 +128,11 @@ void Graphics::InitSceneRenderer() {
 		PSODesc.GraphicsPipeline.pVS = pShadowMapDebugVS;
 		PSODesc.GraphicsPipeline.pPS = pShadowMapDebugPS;
 		PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
-		SamplerDesc SamLinearClampDesc {
+		SamplerDesc SamLinearClampDesc{
 			FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR,
 			TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP, TEXTURE_ADDRESS_CLAMP
 		};
-		StaticSamplerDesc StaticSamplers[] {
+		StaticSamplerDesc StaticSamplers[]{
 			{SHADER_TYPE_PIXEL, "g_ShadowMap", SamLinearClampDesc}
 		};
 		PSODesc.ResourceLayout.StaticSamplers = StaticSamplers;
@@ -266,7 +211,28 @@ void Graphics::InitSceneRenderer() {
 		CHECK_ASSERT(pDebugWireframeBuf);
 	}
 	#endif
+}
 
+Graphics::~Graphics() {
+	pAssets->RemoveListener(this);
+	pScene->RemoveListener(this);
+	meshAssets.Clear();
+}
+
+void Graphics::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {
+	// TODO
+}
+
+void Graphics::Scene_WillReleaseObject(Scene* caller, ObjectID id) {
+	// TODO
+}
+
+void Graphics::Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) {
+	// TODO
+}
+
+void Graphics::Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) {
+	// TODO
 }
 
 Material* Graphics::CreateMaterial(Name name, const MaterialArgs& Args) {
@@ -305,7 +271,7 @@ Mesh* Graphics::CreateMesh(Name name) {
 bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {
 
 	// check refs
-	if (!pWorld->IsValid(id))
+	if (!pScene->IsValid(id))
 		return false;
 
 	Mesh* pMesh = data.pMesh.GetComponent(pAssets);
@@ -360,19 +326,11 @@ void Graphics::DrawDebugLine(const vec4& color, const vec3& start, const vec3& e
 #endif
 }
 
-void Graphics::HandleEvent(const SDL_Event& ev) {
-	let resize = ev.type == SDL_WINDOWEVENT && (
-		ev.window.event == SDL_WINDOWEVENT_RESIZED ||
-		ev.window.event == SDL_WINDOWEVENT_SIZE_CHANGED
-	);
-	if (resize) {
-		int Width, Height;
-		SDL_GetWindowSize(pWindow, &Width, &Height);
-		pSwapChain->Resize(Width, Height);
-	}
-}
-
 void Graphics::Draw() {
+	let pDevice = GetDevice();
+	let pSwapChain = GetSwapChain();
+	let pContext = GetContext();
+
 	const auto& DevCaps = pDevice->GetDeviceCaps();
 	const auto& NDCAttribs = DevCaps.GetNDCAttribs();
 	const bool  IsGL = DevCaps.IsGLDevice();
@@ -385,8 +343,8 @@ void Graphics::Draw() {
 	for(uint32 it=0; it<items.size(); ++it)
 	{
 		let& item = items[it];
-		let pHierarchy = pWorld->GetSublevelHierarchyFor(item.id);
-		let pPose = pHierarchy->GetWorldPose(item.id);
+		let pHierarchy = pScene->GetSublevelHierarchyFor(item.id);
+		let pPose = pHierarchy->GetScenePose(item.id);
 		matrices[it] = pPose->ToMatrix();
 	}
 
@@ -449,7 +407,8 @@ void Graphics::Draw() {
 
 	// draw material passes
 	let view = pov.pose.Inverse().ToMatrix();
-	let viewProjection = glm::perspective(glm::radians(pov.fovy), GetAspect(), pov.zNear, pov.zFar) * view;
+	let aspect = pDisplay->GetAspect();
+	let viewProjection = glm::perspective(glm::radians(pov.fovy), aspect, pov.zNear, pov.zFar) * view;
 	const float ClearColor[] = { 0.50f, 0.05f, 0.55f, 1.0f };
 	auto* pRTV = pSwapChain->GetCurrentBackBufferRTV();
 	auto* pDSV = pSwapChain->GetDepthBufferDSV();
@@ -473,7 +432,7 @@ void Graphics::Draw() {
 					CBConstants->ModelViewTransform = mv;
 					CBConstants->ModelTransform = pose;
 					CBConstants->NormalTransform = normalXf;
-					CBConstants->WorldToShadowMapUVDepth = worldToShadowMapUVDepth;
+					CBConstants->SceneToShadowMapUVDepth = worldToShadowMapUVDepth;
 					CBConstants->LightDirection = vec4(lightz, 0);
 			}
 			item.pMesh->GetSubmesh(item.submeshIdx).DoDraw(this);
@@ -497,7 +456,7 @@ void Graphics::Draw() {
 			CBConstants->ModelViewTransform = view;
 			CBConstants->ModelTransform = glm::identity<mat4>();
 			CBConstants->NormalTransform = glm::identity<mat3>();
-			//CBConstants->WorldToShadowMapUVDepth = worldToShadowMapUVDepth;
+			//CBConstants->SceneToShadowMapUVDepth = worldToShadowMapUVDepth;
 			//CBConstants->LightDirection = vec4(lightz, 0);
 		}
 

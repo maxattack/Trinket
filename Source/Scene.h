@@ -8,13 +8,13 @@
 #include "Math.h"
 #include "Listener.h"
 
-class World;
+class Scene;
 
 //------------------------------------------------------------------------------------------
 // Weak-ptr wrapper to check for use-after-free
 
 template<typename T>
-class WorldRef {
+class SceneRef {
 private:
 	T* ptr;
 	#if TRINKET_CHECKED
@@ -22,12 +22,12 @@ private:
 	#endif
 
 public:
-	WorldRef() noexcept = default;
-	WorldRef(const WorldRef<T>&) noexcept = default;
-	WorldRef(WorldRef<T>&&) noexcept = default;
-	WorldRef<T>& operator=(const WorldRef<T>&) noexcept = default;
+	SceneRef() noexcept = default;
+	SceneRef(const SceneRef<T>&) noexcept = default;
+	SceneRef(SceneRef<T>&&) noexcept = default;
+	SceneRef<T>& operator=(const SceneRef<T>&) noexcept = default;
 
-	WorldRef(ForceInit) noexcept
+	SceneRef(ForceInit) noexcept
 		: ptr(nullptr) 
 	{
 		#if TRINKET_CHECKED	
@@ -35,7 +35,7 @@ public:
 		#endif
 	}
 
-	WorldRef(T* aPtr) noexcept
+	SceneRef(T* aPtr) noexcept
 		: ptr(aPtr)
 	{
 		#if TRINKET_CHECKED	
@@ -44,8 +44,8 @@ public:
 		#endif
 	}
 
-	inline T* GetComponent(const World* pWorld);
-	inline T* GetComponent(const World* pWorld) const;
+	inline T* GetComponent(const Scene* pScene);
+	inline T* GetComponent(const Scene* pScene) const;
 
 	void Reset() {
 		ptr = nullptr;
@@ -58,9 +58,9 @@ public:
 //------------------------------------------------------------------------------------------
 // Interface for listening to world events
 
-class IWorldListener {
+class ISceneListener {
 public:
-	virtual void World_WillReleaseObject(World* caller, ObjectID id) {}
+	virtual void Scene_WillReleaseObject(Scene* caller, ObjectID id) {}
 };
 
 //------------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ public:
 // TODO: Support Clone()ing worlds for play-in-editor (PIE).
 //       (alternatively, spawn new processes for PIE?)
 
-class World : IHierarchyListener
+class Scene : IHierarchyListener
 {
 private:
 
@@ -78,16 +78,16 @@ private:
 
 	ObjectMgr<Name> mgr;
 	ObjectPool<StrongRef<Hierarchy>> sublevels;
-	ObjectPool<WorldRef<Hierarchy>> sceneObjects;
-	ListenerList<IWorldListener> listeners;
+	ObjectPool<SceneRef<Hierarchy>> sceneObjects;
+	ListenerList<ISceneListener> listeners;
 
 public:
 
-	World();
-	~World();
+	Scene();
+	~Scene();
 
-	void AddListener(IWorldListener* listener) { listeners.TryAdd(listener); }
-	void RemoveListener(IWorldListener* listener) { listeners.TryRemove_Swap(listener); }
+	void AddListener(ISceneListener* listener) { listeners.TryAdd(listener); }
+	void RemoveListener(ISceneListener* listener) { listeners.TryRemove_Swap(listener); }
 
 	ObjectID CreateObject(Name name);
 	ObjectID CreateSublevel(Name name);
@@ -122,16 +122,16 @@ private:
 };
 
 //------------------------------------------------------------------------------------------
-// WorldRef Impl
+// SceneRef Impl
 
 template<typename T>
-inline T* WorldRef<T>::GetComponent(const World* pWorld) {
-	CHECK_ASSERT(ptr == nullptr || pWorld->IsValid(id));
+inline T* SceneRef<T>::GetComponent(const Scene* pScene) {
+	CHECK_ASSERT(ptr == nullptr || pScene->IsValid(id));
 	return ptr;
 }
 
 template<typename T>
-inline T* WorldRef<T>::GetComponent(const World* pWorld) const {
-	CHECK_ASSERT(ptr == nullptr || pWorld->IsValid(id));
+inline T* SceneRef<T>::GetComponent(const Scene* pScene) const {
+	CHECK_ASSERT(ptr == nullptr || pScene->IsValid(id));
 	return ptr;
 }

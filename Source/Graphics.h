@@ -43,34 +43,27 @@ struct RenderConstants {
 	mat4 ModelViewTransform;
 	mat4 ModelTransform;
 	mat4 NormalTransform;
-	mat4 WorldToShadowMapUVDepth;
+	mat4 SceneToShadowMapUVDepth;
 	vec4 LightDirection;
 };
 
-class Graphics : IAssetListener, IWorldListener, ISkelRegistryListener {
+class Graphics : IAssetListener, ISceneListener, ISkelRegistryListener {
 public:
 
-	Graphics(SkelRegistry* pSkel, SDL_Window* aWindow);
+	Graphics(Display* aDisplay, SkelRegistry* pSkel);
 	~Graphics();
-
-	void InitSceneRenderer();
-	void HandleEvent(const SDL_Event& aEvent);
-	void Draw();
 
 	SkelRegistry* GetSkelRegistry() const { return pSkel; }
 	AssetDatabase* GetAssets() const { return pAssets; }
-	World* GetWorld() const { return pWorld; }
-
-	SDL_Window* GetWindow() { return pWindow; }
-
-	IRenderDevice* GetDevice() { return pDevice; }
-	IDeviceContext* GetContext() { return pContext; }
-	ISwapChain* GetSwapChain() { return pSwapChain; }
-
+	Scene* GetScene() const { return pScene; }
+	Display* GetDisplay() { return pDisplay; }
+	SDL_Window* GetWindow() { return pDisplay->GetWindow(); }
+	IRenderDevice* GetDevice() { return pDisplay->GetDevice(); }
+	IDeviceContext* GetContext() { return pDisplay->GetContext(); }
+	ISwapChain* GetSwapChain() { return pDisplay->GetSwapChain(); }
 	IShaderSourceInputStreamFactory* GetShaderSourceStream() { return pShaderSourceFactory; }
 	IBuffer* GetRenderConstants() { return pRenderConstants; }
 	ITextureView* GetShadowMapSRV() { return pShadowMapSRV; }
-
 	const CameraPOV& GetPOV() const { return pov; }
 
 	void SetEyePosition(vec3 position) { pov.pose.position = position; }
@@ -78,8 +71,6 @@ public:
 	void SetFOV(float fovy) { pov.fovy = fovy; }
 
 	void SetLightDirection(vec3 direction) { lightDirection = glm::normalize(direction); }
-
-	float GetAspect() const { let& SCD = pSwapChain->GetDesc(); return float(SCD.Width) / float(SCD.Height); }
 
 	Material* CreateMaterial(Name name, const MaterialArgs& Args);
 	Material* GetMaterial(ObjectID assetID) { return DerefPP(materialAssets.TryGetComponent<C_MATERIAL_ASSET>(assetID)); }
@@ -96,17 +87,19 @@ public:
 
 	void DrawDebugLine(const vec4& color, const vec3& start, const vec3& end);
 
+	void Draw();
+
 private:
 
 	void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override;
-	void World_WillReleaseObject(World* caller, ObjectID id) override;
+	void Scene_WillReleaseObject(Scene* caller, ObjectID id) override;
 	void Skeleton_WillReleaseSkeleton(class SkelRegistry* Caller, ObjectID id) override;
 	void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) override;
 
-
+	Display* pDisplay;
 	SkelRegistry* pSkel;
 	AssetDatabase* pAssets;
-	World* pWorld;
+	Scene* pScene;
 
 	enum MeshAssetComponents { C_HANDLE, C_MESH_ASSET=1 };
 	enum MaterialAssetComponents { C_MATERIAL_ASSET=1 };
@@ -118,15 +111,8 @@ private:
 	ObjectPool<StrongRef<Material>> materialAssets;
 	ObjectPool<RenderMeshData> meshRenderers;
 
-	SDL_Window* pWindow;
-
 	CameraPOV pov;
 	vec3 lightDirection;
-
-	RefCntAutoPtr<IRenderDevice>  pDevice;
-	RefCntAutoPtr<IDeviceContext> pContext;
-	RefCntAutoPtr<IEngineFactory> pEngineFactory;
-	RefCntAutoPtr<ISwapChain>     pSwapChain;
 
 	RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
 

@@ -1,24 +1,24 @@
 // Trinket Game Engine
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
-#include "World.h"
+#include "Scene.h"
 #include <shared_mutex>
 
-World::World() 
+Scene::Scene() 
 	: mgr(false)
 {
 	mgr.ReserveCompact(1024);
 	CreateSublevel("Default Level");
 }
 
-World::~World() {
+Scene::~Scene() {
 }
 
-ObjectID World::CreateObject(Name name) {
+ObjectID Scene::CreateObject(Name name) {
 	return mgr.CreateObject(name);
 }
 
-ObjectID World::CreateSublevel(Name name) {
+ObjectID Scene::CreateSublevel(Name name) {
 	let id = CreateObject(name);
 	let pHierarchy = NewObjectComponent<Hierarchy>(id);
 	pHierarchy->AddListener(this);
@@ -26,7 +26,7 @@ ObjectID World::CreateSublevel(Name name) {
 	return id;
 }
 
-void World::TryReleaseObject(ObjectID id) {
+void Scene::TryReleaseObject(ObjectID id) {
 
 	if (!mgr.GetPool().Contains(id))
 		return;
@@ -55,22 +55,22 @@ void World::TryReleaseObject(ObjectID id) {
 
 	for(auto it : destroySet) {
 		for(auto listener : listeners)
-			listener->World_WillReleaseObject(this, it);
+			listener->Scene_WillReleaseObject(this, it);
 		mgr.ReleaseObject(id);
 	}
 }
 
-void World::TryRename(ObjectID id, Name name) {
+void Scene::TryRename(ObjectID id, Name name) {
 	if (let pName = mgr.TryGetComponent<C_NAME>(id))
 		*pName = name;
 }
 
-Name World::GetName(ObjectID id) const {
+Name Scene::GetName(ObjectID id) const {
 	let pName = mgr.GetPool().TryGetComponent<C_NAME>(id);
 	return pName ? *pName : Name(ForceInit::Default);
 }
 
-ObjectID World::FindObject(Name name) const {
+ObjectID Scene::FindObject(Name name) const {
 	let pNames = mgr.GetPool().GetComponentData<C_NAME>();
 	let n = mgr.GetPool().Count();
 	for(int it=0; it<n; ++it) {
@@ -80,15 +80,15 @@ ObjectID World::FindObject(Name name) const {
 	return OBJECT_NIL;
 }
 
-void World::Hierarchy_DidAddObject(Hierarchy* hierarchy, ObjectID id) {
+void Scene::Hierarchy_DidAddObject(Hierarchy* hierarchy, ObjectID id) {
 	sceneObjects.TryAppendObject(id, hierarchy);
 }
 
-void World::Hierarchy_WillRemoveObject(Hierarchy* hierarchy, ObjectID id) {
+void Scene::Hierarchy_WillRemoveObject(Hierarchy* hierarchy, ObjectID id) {
 	sceneObjects.TryReleaseObject_Swap(id);
 }
 
-void World::SanityCheck() {
+void Scene::SanityCheck() {
 	for (auto it = 0; it < GetSublevelCount(); ++it)
 		GetHierarchyByIndex(it)->SanityCheck();
 }

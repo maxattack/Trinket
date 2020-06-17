@@ -6,7 +6,7 @@
 #if TRINKET_EDITOR
 
 #include "Assets.h"
-#include "World.h"
+#include "Scene.h"
 #include "Physics.h"
 #include "Graphics.h"
 #include <iostream>
@@ -14,7 +14,7 @@
 
 Editor::Editor(Physics* aPhysics, Graphics* aGraphics) 
 	: pAssets(aGraphics->GetAssets())
-	, pWorld(aGraphics->GetWorld())
+	, pScene(aGraphics->GetScene())
 	, pPhysics(aPhysics)
 	, pGraphics(aGraphics)
 	, impl(pGraphics->GetDevice(), pGraphics->GetSwapChain()->GetDesc().ColorBufferFormat, pGraphics->GetSwapChain()->GetDesc().DepthBufferFormat)
@@ -77,9 +77,9 @@ void Editor::ShowOutliner() {
 		ImGui::EndMenuBar();
 	}
 
-	for (int sublevelIdx = 0; sublevelIdx < pWorld->GetSublevelCount(); ++sublevelIdx) {
-		let pHierarchy = pWorld->GetHierarchyByIndex(sublevelIdx);
-		let hierarchyName = pWorld->GetName(pWorld->GetSublevelByIndex(sublevelIdx)).GetString();
+	for (int sublevelIdx = 0; sublevelIdx < pScene->GetSublevelCount(); ++sublevelIdx) {
+		let pHierarchy = pScene->GetHierarchyByIndex(sublevelIdx);
+		let hierarchyName = pScene->GetName(pScene->GetSublevelByIndex(sublevelIdx)).GetString();
 		if (ImGui::CollapsingHeader(hierarchyName.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
 
 			let n = pHierarchy->Count();
@@ -91,7 +91,7 @@ void Editor::ShowOutliner() {
 			for (int it = 0; it < n;) {
 				let id = pHierarchy->GetObjectByIndex(it);
 				let hasChildren = pHierarchy->HasChildrenByIndex(it);
-				let name = pWorld->GetName(id).GetString();
+				let name = pScene->GetName(id).GetString();
 				let selected = id == selection; //outlineSelection.Contains(id);
 
 				let newDepth = pHierarchy->GetDepthByIndex(it);
@@ -144,16 +144,16 @@ void Editor::ShowOutliner() {
 			}
 			if (!itemClicked.IsNil()) {
 
-				if (pWorld->IsValid(selection))
-					if (let hierarchy = pWorld->GetSublevelHierarchyFor(selection))
+				if (pScene->IsValid(selection))
+					if (let hierarchy = pScene->GetSublevelHierarchyFor(selection))
 						hierarchy->SetRelativeScale(selection, vec3(1.f, 1.f, 1.f));
 
 				selection = itemClicked;
-				let name = pWorld->GetName(selection).GetString();
+				let name = pScene->GetName(selection).GetString();
 				strcpy_s(renameBuf, 1024, name.c_str());
 
-				if (pWorld->IsValid(selection))
-					if (let hierarchy = pWorld->GetSublevelHierarchyFor(selection))
+				if (pScene->IsValid(selection))
+					if (let hierarchy = pScene->GetSublevelHierarchyFor(selection))
 						hierarchy->SetRelativeScale(selection, vec3(1.2f, 1.2f, 1.2f));
 
 
@@ -176,18 +176,18 @@ void Editor::ShowInspector() {
 
 	ImGui::Begin("Inspector");
 
-	if (pWorld->IsValid(selection)) {
+	if (pScene->IsValid(selection)) {
 		ImGui::Text("Object #%d", selection);
 		ImGui::InputText("", renameBuf, 1024);
 		ImGui::SameLine();
 		if (ImGui::Button("Rename") && renameBuf[0]) {
-			pWorld->TryRename(selection, Name(renameBuf));
+			pScene->TryRename(selection, Name(renameBuf));
 		}
 		if (ImGui::Button("Delete?"))
 			toDelete = selection;
 
-		if (let pHierarchy = pWorld->GetSublevelHierarchyFor(selection)) {
-			let rel = pHierarchy->GetWorldPose(selection);
+		if (let pHierarchy = pScene->GetSublevelHierarchyFor(selection)) {
+			let rel = pHierarchy->GetScenePose(selection);
 			ImGui::LabelText("Position", "<%.2f, %.2f, %.2f>", rel->position.x, rel->position.y, rel->position.z);
 		}
 
@@ -199,7 +199,7 @@ void Editor::ShowInspector() {
 	ImGui::End();
 
 	if (!toDelete.IsNil())
-		pWorld->TryReleaseObject(toDelete);
+		pScene->TryReleaseObject(toDelete);
 }
 
 void Editor::Draw() {

@@ -4,7 +4,7 @@
 #pragma once
 #include "Name.h"
 #include "Object.h"
-#include "GraphicsPlatform.h"
+#include "Display.h"
 #include <eastl/string.h>
 
 struct TextureArg {

@@ -12,9 +12,9 @@ static PxDefaultErrorCallback gDefaultErrorCallback;
 static PxDefaultAllocator gDefaultAllocatorCallback;
 static PxDefaultCpuDispatcher* gDispatcher = nullptr;
 
-Physics::Physics(AssetDatabase* aAssets, World* aWorld)
+Physics::Physics(AssetDatabase* aAssets, Scene* aScene)
 	: pAssets(aAssets)
-	, pWorld(aWorld)
+	, pScene(aScene)
 {
 	pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocatorCallback, gDefaultErrorCallback);
 	CHECK_ASSERT(pFoundation != nullptr);
@@ -66,12 +66,12 @@ void Physics::TryAddGroundPlane() {
 }
 
 bool Physics::TryAttachRigidbodyTo(ObjectID id) {
-	CHECK_ASSERT(pWorld->IsValid(id));
+	CHECK_ASSERT(pScene->IsValid(id));
 	if (rigidBodies.Contains(id))
 		return false;
 
-	let pHierarchy = pWorld->GetSublevelHierarchyFor(id);
-	let worldPose = pHierarchy->GetWorldPose(id);
+	let pHierarchy = pScene->GetSublevelHierarchyFor(id);
+	let worldPose = pHierarchy->GetScenePose(id);
 	PxRigidDynamic* body = pPhysics->createRigidDynamic(worldPose->ToPX());
 	body->userData = ObjectHandle(ObjectTag::SCENE_OBJECT, id).p;
 	pDefaultScene->addActor(*body);
@@ -133,8 +133,8 @@ void Physics::Tick(float dt) {
 	let tickProgress = timeAccum / fixedDeltaTime;
 	for(int it=0; it<n; ++it) {
 		let id = pHandles[it];
-		let pHierarchy = pWorld->GetSublevelHierarchyFor(id);
-		pHierarchy->SetWorldRigidPose(id, RPose::NLerp(
+		let pHierarchy = pScene->GetSublevelHierarchyFor(id);
+		pHierarchy->SetSceneRigidPose(id, RPose::NLerp(
 			pPrevPoses[it], 
 			RPose(pBodies[it]->getGlobalPose()), 
 			tickProgress)

@@ -3,9 +3,9 @@
 
 #pragma once
 #include "Assets.h"
-#include "World.h"
+#include "Scene.h"
 
-// TODO: handle World_WillReleaseObject
+// TODO: handle Scene_WillReleaseObject
 
 namespace physx {
 	class PxFoundation;
@@ -24,7 +24,7 @@ namespace physx {
 class Physics {
 private:
 	AssetDatabase *pAssets;
-	World* pWorld;
+	Scene* pScene;
 	physx::PxFoundation* pFoundation;
 	physx::PxPhysics* pPhysics;
 	physx::PxDefaultCpuDispatcher* pDispatcher;
@@ -37,7 +37,7 @@ private:
 	physx::PxRigidStatic *pGroundPlane;
 
 	float worldToSimScale = 1.f;
-	float simToWorldScale = 1.f;
+	float simToSceneScale = 1.f;
 	float timeAccum = 0.f;
 	float fixedDeltaTime = 0.01f;
 	float fixedTime;
@@ -47,7 +47,7 @@ private:
 
 public:
 
-	Physics(AssetDatabase* aAssets, World* aWorld);
+	Physics(AssetDatabase* aAssets, Scene* aScene);
 	~Physics();
 
 	void TryAddGroundPlane();

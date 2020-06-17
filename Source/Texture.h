@@ -2,7 +2,7 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #pragma once
-#include "GraphicsPlatform.h"
+#include "Display.h"
 #include "Object.h"
 #include "Math.h"
 

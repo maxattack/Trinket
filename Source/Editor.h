@@ -7,7 +7,7 @@
 #if TRINKET_EDITOR
 
 #include <SDL.h>
-#include "GraphicsPlatform.h"
+#include "Display.h"
 #include "Object.h"
 #include "imgui.h"
 #include "DiligentTools/ImGui/interface/ImGuiImplDiligent.hpp"
@@ -16,14 +16,14 @@
 
 
 class AssetDatabase;
-class World;
+class Scene;
 class Physics;
 class Graphics;
 
 class Editor {
 private:
 	AssetDatabase* pAssets;
-	World* pWorld;
+	Scene* pScene;
 	Physics* pPhysics;
 	Graphics* pGraphics;
 

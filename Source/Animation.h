@@ -51,7 +51,7 @@ public:
 	~AnimationRuntime();
 
 	AssetDatabase* GetAssets() const { return pRegistry->GetAssets(); }
-	World* GetWorld() const { return pRegistry->GetWorld(); }
+	Scene* GetScene() const { return pRegistry->GetScene(); }
 
 
 	CharacterRig* CreateCharacterRig(SkelAsset* skel);

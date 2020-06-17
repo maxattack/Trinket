@@ -17,7 +17,7 @@ inline static ScriptVM* GetVM(lua_State* lua) {
 #define SCRIPT_PREAMBLE          \
 	let vm = GetVM(lua);         \
 	let db = vm->GetAssets();    \
-	let world = vm->GetWorld();  \
+	let scene = vm->GetScene();  \
 	let input = vm->GetInput();  \
 	let gfx = vm->GetGraphics(); \
 	let phys = vm->GetPhysics();
@@ -25,12 +25,12 @@ inline static ScriptVM* GetVM(lua_State* lua) {
 #define SCENE_OBJ_METHOD_PREAMBLE                          \
 	let vm = GetVM(lua);                                   \
 	let db = vm->GetAssets();                              \
-	let world = vm->GetWorld();                            \
+	let scene = vm->GetScene();                            \
 	let input = vm->GetInput();                            \
 	let gfx = vm->GetGraphics();                           \
 	let phys = vm->GetPhysics();                           \
 	let obj = check_obj(lua, ObjectTag::SCENE_OBJECT, 1);  \
-	let hierarchy = world->GetSublevelHierarchyFor(obj.id);
+	let hierarchy = scene->GetSublevelHierarchyFor(obj.id);
 
 static ObjectHandle check_obj(lua_State* lua, ObjectTag tag, int narg) {
 	ObjectHandle obj (lua_touserdata(lua, narg));
@@ -112,20 +112,20 @@ static int l_log(lua_State* lua) {
 
 static int l_is_valid(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	lua_pushboolean(lua, obj.id.IsFingerprinted() ? db->IsValid(obj.id) : world->IsValid(obj.id));
+	lua_pushboolean(lua, obj.id.IsFingerprinted() ? db->IsValid(obj.id) : scene->IsValid(obj.id));
 	return 1;
 }
 
 static int l_object_count(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushinteger(lua, world->GetSceneObjectCount());
+	lua_pushinteger(lua, scene->GetSceneObjectCount());
 	return 1;
 }
 
 static int l_create_object(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
-	let result = world->CreateObject(name);
+	let result = scene->CreateObject(name);
 	
 	ObjectHandle parent;
 	if (lua_gettop(lua) > 1) {
@@ -136,11 +136,11 @@ static int l_create_object(lua_State* lua) {
 	}
 
 	if (parent.IsSceneObject())
-		world->GetSublevelHierarchyFor(parent.id)->TryAdd(result, parent.id);
+		scene->GetSublevelHierarchyFor(parent.id)->TryAdd(result, parent.id);
 	else if (parent.IsSublevel())
-		world->GetHierarchy(parent.id)->TryAdd(result);
+		scene->GetHierarchy(parent.id)->TryAdd(result);
 	else
-		world->GetHierarchyByIndex(0)->TryAdd(result);
+		scene->GetHierarchyByIndex(0)->TryAdd(result);
 	
 	lua_pushobj(lua, ObjectTag::SCENE_OBJECT, result);
 	return 1;
@@ -149,24 +149,24 @@ static int l_create_object(lua_State* lua) {
 static int l_create_sublevel(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
-	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT, world->CreateSublevel(name));
+	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT, scene->CreateSublevel(name));
 	return 1;
 
 }
 
 static int l_default_sublevel(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT,  world->GetSublevelByIndex(0));
+	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT,  scene->GetSublevelByIndex(0));
 	return 1;
 }
 
 static int l_find_object(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
-	let result = world->FindObject(name);
-	if (world->IsSceneObject(result))
+	let result = scene->FindObject(name);
+	if (scene->IsSceneObject(result))
 		lua_pushobj(lua, ObjectTag::SCENE_OBJECT, result);
-	else if (world->IsSublevel(result))
+	else if (scene->IsSublevel(result))
 		lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT, result);
 	else
 		lua_pushlightuserdata(lua, nullptr);
@@ -176,16 +176,16 @@ static int l_find_object(lua_State* lua) {
 static int l_object_at(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let idx = static_cast<int32>(luaL_checkinteger(lua, 1));
-	let n = world->GetSceneObjectCount();
+	let n = scene->GetSceneObjectCount();
 	if (idx < 1 || idx > n)
 		return luaL_argerror(lua, 1, "Index out of Range");
-	lua_pushobj(lua, ObjectTag::SCENE_OBJECT, world->GetSceneObjectByIndex(idx - 1));
+	lua_pushobj(lua, ObjectTag::SCENE_OBJECT, scene->GetSceneObjectByIndex(idx - 1));
 	return 1;
 }
 
 static int l_position(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	let pos = hierarchy->GetWorldPose(obj.id)->position;
+	let pos = hierarchy->GetScenePose(obj.id)->position;
 	lua_pushvec3(lua, pos);
 	return 3;
 }
@@ -210,13 +210,13 @@ static int l_set_pose_mask(lua_State* lua) {
 
 static int l_set_position(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	hierarchy->SetWorldPosition(obj.id, lua_check_vec3(lua, 2));
+	hierarchy->SetScenePosition(obj.id, lua_check_vec3(lua, 2));
 	return 0;
 }
 
 static int l_set_rotation(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	hierarchy->SetWorldRotation(obj.id, lua_check_euler(lua, 2));
+	hierarchy->SetSceneRotation(obj.id, lua_check_euler(lua, 2));
 	return 0;
 }
 
@@ -549,7 +549,7 @@ static const struct luaL_Reg lib_wireframe[] = {
 
 ScriptVM::ScriptVM(Input* aInput, Graphics* aGraphics, Physics* aPhysics)
 	: pAssets(aGraphics->GetAssets())
-	, pWorld(aGraphics->GetWorld())
+	, pScene(aGraphics->GetScene())
 	, pInput(aInput)
 	, pGraphics(aGraphics)
 	, pPhysics(aPhysics)

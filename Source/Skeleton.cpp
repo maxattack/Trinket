@@ -6,15 +6,15 @@
 //------------------------------------------------------------------------------------------
 // Helper Functions
 
-void Skel::CalcWorldSpacePose(HPose* outWorldPoses, const HPose& skelToWorld, const HPose* inLocalPoses, const skel_idx_t* inParents, int n) {
+void Skel::CalcSceneSpacePose(HPose* outScenePoses, const HPose& skelToScene, const HPose* inLocalPoses, const skel_idx_t* inParents, int n) {
 	if (n == 0)
 		return;
 
-	outWorldPoses[0] = skelToWorld * inLocalPoses[0];
+	outScenePoses[0] = skelToScene * inLocalPoses[0];
 	for(int it=1; it<n; ++it) {
 		let parent = inParents[it];
 		CHECK_ASSERT(parent >= 0 && parent< n);
-		outWorldPoses[it] = outWorldPoses[parent] * inLocalPoses[it];
+		outScenePoses[it] = outScenePoses[parent] * inLocalPoses[it];
 	}
 }
 
@@ -80,7 +80,7 @@ void SkelAsset::SetLocalRestPose(skel_idx_t idx, const HPose& pose) {
 }
 
 //------------------------------------------------------------------------------------------
-// Skeleton World Component
+// Skeleton Scene Component
 
 Skeleton::Skeleton(ObjectID aID, SkelAsset* asset) noexcept
 	: ObjectComponent(aID)
@@ -95,23 +95,23 @@ Skeleton::~Skeleton() {
 }
 
 void Skeleton::ResetRestPoses() {
-	Skel::CalcWorldSpacePose(pObjectPoses, HPOSE_IDENTITY, pAsset->pLocalPoses, pAsset->pParents, pAsset->nbones);
+	Skel::CalcSceneSpacePose(pObjectPoses, HPOSE_IDENTITY, pAsset->pLocalPoses, pAsset->pParents, pAsset->nbones);
 }
 
 //------------------------------------------------------------------------------------------
 // Skeleton Registry
 
-SkelRegistry::SkelRegistry(AssetDatabase* aAssets, World* aWorld) 
+SkelRegistry::SkelRegistry(AssetDatabase* aAssets, Scene* aScene) 
 	: pAssets(aAssets)
-	, pWorld(aWorld)
+	, pScene(aScene)
 {
 	pAssets->AddListener(this);
-	pWorld->AddListener(this);
+	pScene->AddListener(this);
 }
 
 SkelRegistry::~SkelRegistry() {
 	pAssets->RemoveListener(this);
-	pWorld->RemoveListener(this);
+	pScene->RemoveListener(this);
 }
 
 SkelAsset* SkelRegistry::CreateSkeletonAsset(Name name) {
@@ -126,7 +126,7 @@ SkelAsset* SkelRegistry::GetSkeletonAsset(ObjectID id) {
 }
 
 Skeleton* SkelRegistry::AttachSkeletonTo(ObjectID id, SkelAsset* skel) {
-	let earlyOut = instances.Contains(id) || !pWorld->IsValid(id);
+	let earlyOut = instances.Contains(id) || !pScene->IsValid(id);
 	if (earlyOut)
 		return nullptr;
 
@@ -140,11 +140,11 @@ Skeleton* SkelRegistry::GetSkeletonFor(ObjectID id) {
 }
 
 bool SkelRegistry::TryAttachSocketTo(ObjectID id, Skeleton* skel, int16 jointIdx, const HPose& pose) {
-	let statusOK = !sockets.Contains(id) && pWorld->IsValid(id);
+	let statusOK = !sockets.Contains(id) && pScene->IsValid(id);
 	if (!statusOK && sockets.TryAppendObject(id, Socket { skel, pose, jointIdx }))
 		return false;
 
-	let pHierarchy = GetWorld()->GetSublevelHierarchyFor(id);
+	let pHierarchy = GetScene()->GetSublevelHierarchyFor(id);
 	pHierarchy->SetMask(id, PoseMask(true, true, true));
 	return true;
 }
@@ -162,10 +162,10 @@ void SkelRegistry::Update() {
 	for(int it=0; it<nSockets; ++it) {
 		let id = pSocketIDs[it];
 		let skelID = pSockets[it].pSkeleton->ID();
-		let pSocketHierarchy = pWorld->GetSublevelHierarchyFor(id);
-		let pSkelHierarchy = pWorld->GetSublevelHierarchyFor(skelID);
-		let pose = (*pSkelHierarchy->GetWorldPose(skelID)) * pSockets[it].pSkeleton->GetObjectPose(pSockets[it].idx);
-		pSocketHierarchy->SetWorldPose(id, pose);
+		let pSocketHierarchy = pScene->GetSublevelHierarchyFor(id);
+		let pSkelHierarchy = pScene->GetSublevelHierarchyFor(skelID);
+		let pose = (*pSkelHierarchy->GetScenePose(skelID)) * pSockets[it].pSkeleton->GetObjectPose(pSockets[it].idx);
+		pSocketHierarchy->SetScenePose(id, pose);
 	}
 }
 
@@ -178,7 +178,7 @@ void SkelRegistry::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id)
 	assets.TryReleaseObject_Swap(id);
 }
 
-void SkelRegistry::World_WillReleaseObject(World* caller, ObjectID id) {
+void SkelRegistry::Scene_WillReleaseObject(Scene* caller, ObjectID id) {
 	sockets.TryReleaseObject_Swap(id);
 	if (!instances.Contains(id))
 		return;

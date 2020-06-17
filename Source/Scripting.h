@@ -3,7 +3,7 @@
 
 #pragma once
 #include "Assets.h"
-#include "World.h"
+#include "Scene.h"
 #include "Input.h"
 #include "Graphics.h"
 #include "Physics.h"
@@ -11,7 +11,7 @@
 class ScriptVM {
 private:
 	AssetDatabase* pAssets;
-	World* pWorld;
+	Scene* pScene;
 	Input* pInput;
 	Graphics *pGraphics;
 	Physics *pPhysics;
@@ -23,7 +23,7 @@ public:
 	~ScriptVM();
 
 	AssetDatabase* GetAssets() const { return pAssets; }
-	World* GetWorld() const { return pWorld; }
+	Scene* GetScene() const { return pScene; }
 	Input* GetInput() const { return pInput; }
 	Graphics* GetGraphics() const { return pGraphics; }
 	Physics* GetPhysics() const { return pPhysics; }

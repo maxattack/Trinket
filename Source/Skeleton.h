@@ -5,7 +5,7 @@
 #include "Math.h"
 #include "Object.h"
 #include "Assets.h"
-#include "World.h"
+#include "Scene.h"
 #include "Listener.h"
 
 // Only need 16-bits to index a skeleton
@@ -14,7 +14,7 @@ typedef int16 skel_idx_t;
 // skeleton pure helper functions
 namespace Skel {
 
-	void CalcWorldSpacePose(HPose* outWorldPoses, const HPose& skelToWorld, const HPose* inLocalPoses, const skel_idx_t* inParents, int n);
+	void CalcSceneSpacePose(HPose* outScenePoses, const HPose& skelToScene, const HPose* inLocalPoses, const skel_idx_t* inParents, int n);
 }
 
 class SkelAsset : public ObjectComponent {
@@ -76,14 +76,14 @@ public:
 	virtual void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) = 0;
 };
 
-class SkelRegistry : IAssetListener, IWorldListener {
+class SkelRegistry : IAssetListener, ISceneListener {
 public:
 
-	SkelRegistry(AssetDatabase* aAssets, World* aWorld);
+	SkelRegistry(AssetDatabase* aAssets, Scene* aScene);
 	~SkelRegistry();
 
 	AssetDatabase* GetAssets() const { return pAssets; }
-	World* GetWorld() const { return pWorld; }
+	Scene* GetScene() const { return pScene; }
 
 	void AddListener(ISkelRegistryListener* listener) { listeners.TryAdd(listener); }
 	void RemoveListener(ISkelRegistryListener* listener) { listeners.TryRemove_Swap(listener); }
@@ -104,7 +104,7 @@ private:
 
 	ListenerList<ISkelRegistryListener> listeners;
 	AssetDatabase* pAssets;
-	World* pWorld;
+	Scene* pScene;
 
 	struct Socket {
 		Skeleton* pSkeleton;
@@ -117,7 +117,7 @@ private:
 	ObjectPool<Socket> sockets;
 
 	void Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) override;
-	void World_WillReleaseObject(World* caller, ObjectID id) override;
+	void Scene_WillReleaseObject(Scene* caller, ObjectID id) override;
 
 
 

@@ -112,7 +112,7 @@ bool Hierarchy::TryReparent(ObjectID id, ObjectID underParent, ReparentMode mode
 	if (idx == INVALID_INDEX)
 		return false;
 
-	let worldStay = mode == ReparentMode::MaintainWorldPose;
+	let worldStay = mode == ReparentMode::MaintainScenePose;
 	auto worldPose = *pool.GetComponentByIndex<C_WORLD_POSE>(idx);
 	auto relPose = *pool.GetComponentByIndex<C_RELATIVE_POSE>(idx);
 	let mask = *pool.GetComponentByIndex<C_MASK>(idx);
@@ -154,14 +154,14 @@ bool Hierarchy::TryReparent(ObjectID id, ObjectID underParent, ReparentMode mode
 		let pHandles = pool.GetComponentData<C_HANDLE>();
 		let pParents = pool.GetComponentData<C_PARENT>();
 		let pRelativePoses = pool.GetComponentData<C_RELATIVE_POSE>();
-		let pWorldPoses = pool.GetComponentData<C_WORLD_POSE>();
+		let pScenePoses = pool.GetComponentData<C_WORLD_POSE>();
 		let pMask = pool.GetComponentData<C_MASK>();
 		for(int it=idx + 1; it<idxEnd; ++it)
 			childParents.emplace_back(
 				pHandles[it], 
 				pParents[it] - idx,
 				pRelativePoses[it],
-				pWorldPoses[it],
+				pScenePoses[it],
 				pMask[it]
 			);
 	}
@@ -268,20 +268,20 @@ bool Hierarchy::SetMaskByIndex(int32 idx, PoseMask mask, ReparentMode mode) {
 
 	auto pParents = pool.GetComponentData<C_PARENT>();
 	auto pRelativePoses = pool.GetComponentData<C_RELATIVE_POSE>();
-	auto pWorldPoses = pool.GetComponentData<C_WORLD_POSE>();
+	auto pScenePoses = pool.GetComponentData<C_WORLD_POSE>();
 
 	let parentIdx = pParents[idx];
 	if (parentIdx == INVALID_INDEX) {
 		return true;
 	}
 
-	if (mode == ReparentMode::MaintainWorldPose) {
-		pRelativePoses[idx] = mask.Rebase(pWorldPoses[parentIdx], pWorldPoses[idx]);
+	if (mode == ReparentMode::MaintainScenePose) {
+		pRelativePoses[idx] = mask.Rebase(pScenePoses[parentIdx], pScenePoses[idx]);
 	} else {
-		pWorldPoses[idx] = mask.Concat(pWorldPoses[parentIdx], pRelativePoses[idx]);
+		pScenePoses[idx] = mask.Concat(pScenePoses[parentIdx], pRelativePoses[idx]);
 		let idxEnd = GetDescendentRangeByIndex(idx);
 		for (auto cidx = idx + 1; cidx != idxEnd; ++cidx)
-			pWorldPoses[cidx] = pMask[cidx].Concat(pWorldPoses[pParents[cidx]], pRelativePoses[cidx]);
+			pScenePoses[cidx] = pMask[cidx].Concat(pScenePoses[pParents[cidx]], pRelativePoses[cidx]);
 	}
 
 	return true;
@@ -290,84 +290,84 @@ bool Hierarchy::SetMaskByIndex(int32 idx, PoseMask mask, ReparentMode mode) {
 #define SET_POSE_PREAMBLE \
 	let pParents = pool.GetComponentData<C_PARENT>(); \
 	let pRelativePoses = pool.GetComponentData<C_RELATIVE_POSE>(); \
-	let pWorldPoses = pool.GetComponentData<C_WORLD_POSE>(); \
+	let pScenePoses = pool.GetComponentData<C_WORLD_POSE>(); \
 	let pMask = pool.GetComponentData<C_MASK>(); \
 	let parentIdx = pParents[idx]; \
 	let idxEnd = GetDescendentRangeByIndex(idx);
 
 #define SET_POSE_CONCLUSION \
 	for (auto cidx = idx + 1; cidx != idxEnd; ++cidx) \
-		pWorldPoses[cidx] = pMask[cidx].Concat(pWorldPoses[pParents[cidx]], pRelativePoses[cidx]); \
+		pScenePoses[cidx] = pMask[cidx].Concat(pScenePoses[pParents[cidx]], pRelativePoses[cidx]); \
 	return true;
 
 
 bool Hierarchy::SetRelativePoseByIndex(int32 idx, const HPose & rel) {
 	SET_POSE_PREAMBLE
 	pRelativePoses[idx] = rel;
-	pWorldPoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pWorldPoses[parentIdx], rel) : rel;
+	pScenePoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pScenePoses[parentIdx], rel) : rel;
 	SET_POSE_CONCLUSION
 }
 
 bool Hierarchy::SetRelativePositionByIndex(int32 idx, const vec3& position) {
 	SET_POSE_PREAMBLE
 	pRelativePoses[idx].position = position;
-	pWorldPoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pWorldPoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
+	pScenePoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pScenePoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
 bool Hierarchy::SetRelativeRotationByIndex(int32 idx, const quat& rotation) {
 	SET_POSE_PREAMBLE
 	pRelativePoses[idx].rotation = rotation;
-	pWorldPoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pWorldPoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
+	pScenePoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pScenePoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
 bool Hierarchy::SetRelativeScaleByIndex(int32 idx, const vec3& scale) {
 	SET_POSE_PREAMBLE
 	pRelativePoses[idx].scale = scale;
-	pWorldPoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pWorldPoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
+	pScenePoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pScenePoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
 bool Hierarchy::SetRelativeRigidPoseByIndex(int32 idx, const RPose& pose) {
 	SET_POSE_PREAMBLE
 	pRelativePoses[idx].rpose = pose;
-	pWorldPoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pWorldPoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
+	pScenePoses[idx] = parentIdx >= 0 ? pMask[idx].Concat(pScenePoses[parentIdx], pRelativePoses[idx]) : pRelativePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
-bool Hierarchy::SetWorldPoseByIndex(int32 idx, const HPose & pose) {
+bool Hierarchy::SetScenePoseByIndex(int32 idx, const HPose & pose) {
 	SET_POSE_PREAMBLE
-	pWorldPoses[idx] = pose;
-	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pWorldPoses[parentIdx], pWorldPoses[idx]) : pWorldPoses[idx];
+	pScenePoses[idx] = pose;
+	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pScenePoses[parentIdx], pScenePoses[idx]) : pScenePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
-bool Hierarchy::SetWorldPositionByIndex(int32 idx, const vec3& position) {
+bool Hierarchy::SetScenePositionByIndex(int32 idx, const vec3& position) {
 	SET_POSE_PREAMBLE
-	pWorldPoses[idx].position = position;
-	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pWorldPoses[parentIdx], pWorldPoses[idx]) : pWorldPoses[idx];
+	pScenePoses[idx].position = position;
+	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pScenePoses[parentIdx], pScenePoses[idx]) : pScenePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
-bool Hierarchy::SetWorldRotationByIndex(int32 idx, const quat& rotation) {
+bool Hierarchy::SetSceneRotationByIndex(int32 idx, const quat& rotation) {
 	SET_POSE_PREAMBLE
-	pWorldPoses[idx].rotation = rotation;
-	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pWorldPoses[parentIdx], pWorldPoses[idx]) : pWorldPoses[idx];
+	pScenePoses[idx].rotation = rotation;
+	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pScenePoses[parentIdx], pScenePoses[idx]) : pScenePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
-bool Hierarchy::SetWorldScaleByIndex(int32 idx, const vec3& scale) {
+bool Hierarchy::SetSceneScaleByIndex(int32 idx, const vec3& scale) {
 	SET_POSE_PREAMBLE
-	pWorldPoses[idx].scale = scale;
-	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pWorldPoses[parentIdx], pWorldPoses[idx]) : pWorldPoses[idx];
+	pScenePoses[idx].scale = scale;
+	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pScenePoses[parentIdx], pScenePoses[idx]) : pScenePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
-bool Hierarchy::SetWorldRigidPoseByIndex(int32 idx, const RPose& pose) {
+bool Hierarchy::SetSceneRigidPoseByIndex(int32 idx, const RPose& pose) {
 	SET_POSE_PREAMBLE
-	pWorldPoses[idx].rpose = pose;
-	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pWorldPoses[parentIdx], pWorldPoses[idx]) : pWorldPoses[idx];
+	pScenePoses[idx].rpose = pose;
+	pRelativePoses[idx] = parentIdx >= 0 ? pMask[idx].Rebase(pScenePoses[parentIdx], pScenePoses[idx]) : pScenePoses[idx];
 	SET_POSE_CONCLUSION
 }
 
@@ -377,17 +377,17 @@ bool Hierarchy::SetWorldRigidPoseByIndex(int32 idx, const RPose& pose) {
 void Hierarchy::SanityCheck() {
 	auto pParent = pool.GetComponentData<C_PARENT>();
 	auto pRelativePoses = pool.GetComponentData<C_RELATIVE_POSE>();
-	auto pWorldPoses = pool.GetComponentData<C_WORLD_POSE>();
+	auto pScenePoses = pool.GetComponentData<C_WORLD_POSE>();
 	let n = pool.Count();
 
 	for(int it=0; it<n; ++it) {
 		CHECK_ASSERT(*pParent == INVALID_INDEX || *pParent < it);
 		CHECK_ASSERT(!ContainsNaN(*pRelativePoses));
-		CHECK_ASSERT(!ContainsNaN(*pWorldPoses));
+		CHECK_ASSERT(!ContainsNaN(*pScenePoses));
 		CHECK_ASSERT(IsNormalized(*pRelativePoses));
-		CHECK_ASSERT(IsNormalized(*pWorldPoses));
+		CHECK_ASSERT(IsNormalized(*pScenePoses));
 		++pParent;
 		++pRelativePoses;
-		++pWorldPoses;
+		++pScenePoses;
 	}
 }

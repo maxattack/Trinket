@@ -20,7 +20,7 @@ public:
 };
 
 enum class ReparentMode {
-	MaintainWorldPose,
+	MaintainScenePose,
 	MaintainRelativePose
 };
 
@@ -73,7 +73,7 @@ public:
 
 	bool TryAdd(ObjectID id, ObjectID parent = OBJECT_NIL);
 	bool TryRelease(ObjectID id);
-	bool TryReparent(ObjectID id, ObjectID underParent = OBJECT_NIL, ReparentMode mode = ReparentMode::MaintainWorldPose);
+	bool TryReparent(ObjectID id, ObjectID underParent = OBJECT_NIL, ReparentMode mode = ReparentMode::MaintainScenePose);
 
 	// TRANSFORM METHODS
 
@@ -81,16 +81,16 @@ public:
 	const HPose* GetRelativePoseByIndex(int32 idx) const { return pool.GetComponentByIndex<C_RELATIVE_POSE>(idx); }
 	const HPose* GetRelativePoseData() const { return pool.GetComponentData<C_RELATIVE_POSE>(); }
 	
-	const HPose* GetWorldPose(ObjectID id) const { return pool.TryGetComponent<C_WORLD_POSE>(id); }
-	const HPose* GetWorldPoseByIndex(int32 idx) const { return pool.GetComponentByIndex<C_WORLD_POSE>(idx); }
-	const HPose* GetWorldPoseData() const { return pool.GetComponentData<C_WORLD_POSE>(); }
+	const HPose* GetScenePose(ObjectID id) const { return pool.TryGetComponent<C_WORLD_POSE>(id); }
+	const HPose* GetScenePoseByIndex(int32 idx) const { return pool.GetComponentByIndex<C_WORLD_POSE>(idx); }
+	const HPose* GetScenePoseData() const { return pool.GetComponentData<C_WORLD_POSE>(); }
 
 	const PoseMask* GetMask(ObjectID id) const { return pool.TryGetComponent<C_MASK>(id); }
 	const PoseMask* GetMaskByIndex(int32 idx) const { return pool.GetComponentByIndex<C_MASK>(idx); }
 	const PoseMask* GetMaskData() const { return pool.GetComponentData<C_MASK>(); }
 
-	bool SetMask(ObjectID id, PoseMask mask, ReparentMode mode = ReparentMode::MaintainWorldPose);
-	bool SetMaskByIndex(int32 idx, PoseMask mask, ReparentMode mode = ReparentMode::MaintainWorldPose);
+	bool SetMask(ObjectID id, PoseMask mask, ReparentMode mode = ReparentMode::MaintainScenePose);
+	bool SetMaskByIndex(int32 idx, PoseMask mask, ReparentMode mode = ReparentMode::MaintainScenePose);
 
 	bool SetRelativePose(ObjectID id, const HPose& pose) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetRelativePoseByIndex(idx, pose); }
 	bool SetRelativePosition(ObjectID id, const vec3& pos) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetRelativePositionByIndex(idx, pos); }
@@ -104,18 +104,18 @@ public:
 	bool SetRelativeScaleByIndex(int32 idx, const vec3& scale);
 	bool SetRelativeRigidPoseByIndex(int32 idx, const RPose& pose);
 
-	bool SetWorldPose(ObjectID id, const HPose& pose) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetWorldPoseByIndex(idx, pose); }
-	bool SetWorldPosition(ObjectID id, const vec3& pos) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetWorldPositionByIndex(idx, pos); }
-	bool SetWorldRotation(ObjectID id, const quat& rot) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetWorldRotationByIndex(idx, rot); }
-	bool SetWorldScale(ObjectID id, const vec3& scale) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetWorldScaleByIndex(idx, scale); }
-	bool SetWorldRigidPose(ObjectID id, const RPose& pose) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetWorldRigidPoseByIndex(idx, pose); }
+	bool SetScenePose(ObjectID id, const HPose& pose) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetScenePoseByIndex(idx, pose); }
+	bool SetScenePosition(ObjectID id, const vec3& pos) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetScenePositionByIndex(idx, pos); }
+	bool SetSceneRotation(ObjectID id, const quat& rot) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetSceneRotationByIndex(idx, rot); }
+	bool SetSceneScale(ObjectID id, const vec3& scale) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetSceneScaleByIndex(idx, scale); }
+	bool SetSceneRigidPose(ObjectID id, const RPose& pose) { let idx = IndexOf(id); return idx != INVALID_INDEX && SetSceneRigidPoseByIndex(idx, pose); }
 
 
-	bool SetWorldPoseByIndex(int32 idx, const HPose& pose);
-	bool SetWorldPositionByIndex(int32 idx, const vec3& position);
-	bool SetWorldRotationByIndex(int32 idx, const quat& rotation);
-	bool SetWorldScaleByIndex(int32 idx, const vec3& scale);
-	bool SetWorldRigidPoseByIndex(int32 idx, const RPose& pose);
+	bool SetScenePoseByIndex(int32 idx, const HPose& pose);
+	bool SetScenePositionByIndex(int32 idx, const vec3& position);
+	bool SetSceneRotationByIndex(int32 idx, const quat& rotation);
+	bool SetSceneScaleByIndex(int32 idx, const vec3& scale);
+	bool SetSceneRigidPoseByIndex(int32 idx, const RPose& pose);
 
 	// TODO: Add Batch-Update Versions (e.g. for physics updates)
 

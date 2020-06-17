@@ -2,7 +2,7 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #include "Assets.h"
-#include "World.h"
+#include "Scene.h"
 #include "Physics.h"
 #include "Animation.h"
 #include "Graphics.h"
@@ -15,46 +15,35 @@
 int main(int argc, char** argv) {
     using namespace std;
 
-	srand(clock());
-
 	// init sdl
+	srand(clock());
 	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_GAMECONTROLLER) < 0) {
 		cout << "[SDL] Init Error: " << SDL_GetError() << endl;
 		return -1;
 	}
 
-	let windowFlags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
-	let window = SDL_CreateWindow("Trinket", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, windowFlags);
-	if (window == nullptr) {
-		cout << "[SDL] Create Window Error: " << SDL_GetError() << endl;
-		getchar();
-		return -1;
-	}
-
 	struct SDL_ScopeGuard {
-		SDL_Window* pWindow;
-		SDL_ScopeGuard(SDL_Window* aWindow) noexcept : pWindow(aWindow) {}
 		~SDL_ScopeGuard() {
-			SDL_DestroyWindow(pWindow);
+			//
 			SDL_Quit();
 		}
 	};
 
-	static SDL_ScopeGuard scope(window);
+	static SDL_ScopeGuard scope;
+	static Display display("Trinket");
 	static AssetDatabase db;
-	static World world;
 	static Input input;
-	static SkelRegistry skel(&db, &world);
-	static Physics phys(&db, &world);
+	static Scene scene;
+	static SkelRegistry skel(&db, &scene);
+	static Physics phys(&db, &scene);
 	static AnimationRuntime anim(&skel);
-	static Graphics gfx(&skel, window);
+	static Graphics gfx(&display, &skel);
 	static ScriptVM vm(&input, &gfx, &phys);
 	#if TRINKET_EDITOR
 	static Editor editor(&phys, &gfx);
 	#endif
 
 	// init
-	gfx.InitSceneRenderer();
 	vm.RunScript("Assets/main.lua");
 
 	// main loop
@@ -67,7 +56,7 @@ int main(int argc, char** argv) {
 			if (isEndEvent)
 				done = true;
 			input.HandleEvent(event);
-			gfx.HandleEvent(event);
+			display.HandleEvent(event);
 			#if TRINKET_EDITOR
 			editor.HandleEvent(event);
 			#endif
@@ -91,7 +80,7 @@ int main(int argc, char** argv) {
 		#endif
 
 		bool vsync = true;
-		gfx.GetSwapChain()->Present(vsync ? 1 : 0);
+		display.GetSwapChain()->Present(vsync ? 1 : 0);
 	}
 
     return 0;
