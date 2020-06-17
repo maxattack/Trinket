@@ -2,32 +2,22 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #pragma once
-#include "Assets.h"
-#include "Scene.h"
 #include "Input.h"
-#include "Graphics.h"
-#include "Physics.h"
+#include "World.h"
 
 class ScriptVM {
 private:
-	AssetDatabase* pAssets;
-	Scene* pScene;
 	Input* pInput;
-	Graphics *pGraphics;
-	Physics *pPhysics;
+	World* pWorld;
 	struct lua_State* lua;
 
 public:
 
-	ScriptVM(Input* aInput, Graphics* aGraphics, Physics* aPhysics);
+	ScriptVM(Input* aInput, World* pWorld);
 	~ScriptVM();
 
-	AssetDatabase* GetAssets() const { return pAssets; }
-	Scene* GetScene() const { return pScene; }
-	Input* GetInput() const { return pInput; }
-	Graphics* GetGraphics() const { return pGraphics; }
-	Physics* GetPhysics() const { return pPhysics; }
-
+	World* GetWorld() { return pWorld; }
+	Input* GetInput() { return pInput; }
 
 	void RunScript(const char* path);
 	void Tick();

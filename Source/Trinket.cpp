@@ -1,11 +1,9 @@
 // Trinket Game Engine
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
-#include "Assets.h"
-#include "Scene.h"
-#include "Physics.h"
-#include "Animation.h"
-#include "Graphics.h"
+#include "Display.h"
+#include "Input.h"
+#include "World.h"
 #include "Scripting.h"
 #include "Editor.h"
 
@@ -21,33 +19,23 @@ int main(int argc, char** argv) {
 		cout << "[SDL] Init Error: " << SDL_GetError() << endl;
 		return -1;
 	}
-
-	struct SDL_ScopeGuard {
-		~SDL_ScopeGuard() {
-			//
-			SDL_Quit();
-		}
-	};
-
+	struct SDL_ScopeGuard { ~SDL_ScopeGuard() { SDL_Quit(); } };
 	static SDL_ScopeGuard scope;
+
+	// init globals
 	static Display display("Trinket");
-	static AssetDatabase db;
 	static Input input;
-	static Scene scene;
-	static SkelRegistry skel(&db, &scene);
-	static Physics phys(&db, &scene);
-	static AnimationRuntime anim(&skel);
-	static Graphics gfx(&display, &skel);
-	static ScriptVM vm(&input, &gfx, &phys);
+	static World world(&display);
+	static ScriptVM vm(&input, &world);
 	#if TRINKET_EDITOR
-	static Editor editor(&phys, &gfx);
+	static Editor editor(&world);
 	#endif
 
-	// init
+	// init content
 	vm.RunScript("Assets/main.lua");
 
 	// main loop
-	// TODO: separate gameplay and rendering (and, eventually, animation) threads
+	// TODO: multithreading :P
 	for (bool done = false; !done;) {
 
 		// handle events
@@ -60,7 +48,6 @@ int main(int argc, char** argv) {
 			#if TRINKET_EDITOR
 			editor.HandleEvent(event);
 			#endif
-	
 		}
 
 		// update
@@ -68,19 +55,17 @@ int main(int argc, char** argv) {
 		#if TRINKET_EDITOR
 		editor.Update();
 		#endif
-		if (input.GetDeltaTicks() > 0) {
-			vm.Tick();
-			phys.Tick(input.GetDeltaTime());
-		}
+		vm.Tick();
+		if (input.GetDeltaTicks() > 0)
+			world.phys.Tick(input.GetDeltaTime());
 
 		// draw
-		gfx.Draw();
+		world.gfx.Draw();
 		#if TRINKET_EDITOR
 		editor.Draw();
 		#endif
 
-		bool vsync = true;
-		display.GetSwapChain()->Present(vsync ? 1 : 0);
+		display.Present();
 	}
 
     return 0;

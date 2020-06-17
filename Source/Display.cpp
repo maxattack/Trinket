@@ -60,3 +60,8 @@ void Display::HandleEvent(const SDL_Event& ev) {
 	}
 }
 
+void Display::Present() {
+	bool vsync = true;
+	pSwapChain->Present(vsync ? 1 : 0);
+
+}

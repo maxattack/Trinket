@@ -48,7 +48,7 @@ public:
 	float GetAspect() const { let& SCD = pSwapChain->GetDesc(); return float(SCD.Width) / float(SCD.Height); }
 
 	void HandleEvent(const SDL_Event& aEvent);
-
+	void Present();
 
 private:
 

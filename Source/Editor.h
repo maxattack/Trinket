@@ -15,17 +15,11 @@
 #include "imgui_impl_sdl.h"
 
 
-class AssetDatabase;
-class Scene;
-class Physics;
-class Graphics;
+class World;
 
 class Editor {
 private:
-	AssetDatabase* pAssets;
-	Scene* pScene;
-	Physics* pPhysics;
-	Graphics* pGraphics;
+	World* pWorld;
 
 	ImGuiImplDiligent impl;
 
@@ -36,7 +30,7 @@ private:
 
 public:
 
-	Editor(Physics* aPhysics, Graphics *aGraphics);
+	Editor(World* aWorld);
 	~Editor();
 
 	void HandleEvent(const SDL_Event& Event);

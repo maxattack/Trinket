@@ -5,26 +5,20 @@
 
 #if TRINKET_EDITOR
 
-#include "Assets.h"
-#include "Scene.h"
-#include "Physics.h"
-#include "Graphics.h"
+#include "World.h"
 #include <iostream>
 
 
-Editor::Editor(Physics* aPhysics, Graphics* aGraphics) 
-	: pAssets(aGraphics->GetAssets())
-	, pScene(aGraphics->GetScene())
-	, pPhysics(aPhysics)
-	, pGraphics(aGraphics)
-	, impl(pGraphics->GetDevice(), pGraphics->GetSwapChain()->GetDesc().ColorBufferFormat, pGraphics->GetSwapChain()->GetDesc().DepthBufferFormat)
+Editor::Editor(World* aWorld) 
+	: pWorld(aWorld)
+	, impl(aWorld->gfx.GetDevice(), aWorld->gfx.GetSwapChain()->GetDesc().ColorBufferFormat, aWorld->gfx.GetSwapChain()->GetDesc().DepthBufferFormat)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.IniFilename = nullptr;
 	ImGui::StyleColorsDark();
-	ImGui_ImplSDL2_InitForD3D(pGraphics->GetWindow());
+	ImGui_ImplSDL2_InitForD3D(aWorld->gfx.GetWindow());
 	renameBuf[0] = 0;
 }
 
@@ -36,8 +30,8 @@ void Editor::HandleEvent(const SDL_Event& Event) {
 }
 
 void Editor::Update() {
-	ImGui_ImplSDL2_NewFrame(pGraphics->GetWindow());
-	auto& SCDesc = pGraphics->GetSwapChain()->GetDesc();
+	ImGui_ImplSDL2_NewFrame(pWorld->gfx.GetWindow());
+	auto& SCDesc = pWorld->gfx.GetSwapChain()->GetDesc();
 	impl.NewFrame(SCDesc.Width, SCDesc.Height, SCDesc.PreTransform);
 	if (showDemoWindow)
 		ImGui::ShowDemoWindow(&showDemoWindow);
@@ -47,6 +41,8 @@ void Editor::Update() {
 }
 
 void Editor::ShowOutliner() {
+	let pScene = &(pWorld->scene);
+
 	using namespace std;
 
 	ImGui::SetNextWindowPos(ImVec2(25, 25), ImGuiCond_FirstUseEver);
@@ -169,6 +165,8 @@ void Editor::ShowOutliner() {
 
 
 void Editor::ShowInspector() {
+	let pScene = &(pWorld->scene);
+
 	ImGui::SetNextWindowPos(ImVec2(1920 - 25 - 400, 25), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(400, 680), ImGuiCond_FirstUseEver);
 
@@ -203,7 +201,7 @@ void Editor::ShowInspector() {
 }
 
 void Editor::Draw() {
-	impl.Render(pGraphics->GetContext());
+	impl.Render(pWorld->gfx.GetContext());
 }
 
 
