@@ -5,6 +5,22 @@
 #include "Display.h"
 #include "Object.h"
 #include "Math.h"
+#include "AssetData.h"
+
+// TODO:
+// Compression?
+// Clamping?
+// Filters?
+// Mipmaps?
+// Channels?
+struct TextureDataHeader : AssetDataHeader {
+	uint16_t TextureWidth;
+	uint16_t TextureHeight;
+
+	void* TextureData() { return this + 1; }
+};
+
+TextureDataHeader* LoadTextureAssetDataFromConfig(const char* configPath);
 
 class Texture : public ObjectComponent {
 private:

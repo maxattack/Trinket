@@ -5,7 +5,24 @@
 #include "Name.h"
 #include "Object.h"
 #include "Display.h"
-#include <eastl/string.h>
+#include "AssetData.h"
+
+
+struct MaterialDataHeader : AssetDataHeader {
+	uint32 VertexShaderNameOffset;
+	uint32 PixelShaderNameOffset;
+	uint32 TextureVariablesOffset;
+	uint32 TextureCount;
+
+	const char* VertexShaderPath() const { return GetDataAt<char>(this, VertexShaderNameOffset); }
+	const char* PixelShaderPath() const { return GetDataAt<char>(this, PixelShaderNameOffset); }
+	const char* GetTextureVariables() const { return GetDataAt<char>(this, TextureVariablesOffset); }
+};
+
+MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath);
+
+
+
 
 struct TextureArg {
 	const char* variableName;

@@ -4,6 +4,54 @@
 #include "Texture.h"
 #include "Graphics.h"
 #include <stb_image.h>
+#include <ini.h>
+
+TextureDataHeader* LoadTextureAssetDataFromConfig(const char* configPath) {
+
+	struct TextureConfig {
+		eastl::string path;
+	};
+
+	let handler = [](void* user, const char* section, const char* name, const char* value) {
+		auto pConfig = (TextureConfig*) user;
+		
+		#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+
+		if (MATCH("Texture", "path"))
+			pConfig->path = value;
+		
+		#undef MATCH
+
+		return 1;
+	};
+
+	TextureConfig config;
+	if (ini_parse(configPath, handler, &config))
+		return nullptr;
+
+	config.path = "Assets/" + config.path;
+	
+	int w, h, chan;
+	let pData = stbi_load(config.path.c_str(), &w, &h, &chan, 4);
+	if (pData == nullptr)
+		return nullptr;
+
+	let bytesPerPixel = 4;
+	let dataSize = bytesPerPixel * w * h;
+	let result = (TextureDataHeader*) AllocAssetData(sizeof(TextureDataHeader) + dataSize);
+
+	result->TextureWidth = (uint32) w;
+	result->TextureHeight = (uint32) h;
+	memcpy(result->TextureData(), pData, dataSize);
+
+	stbi_image_free(pData);
+
+	return result;
+}
+
+
+
+
 
 Texture::Texture(ObjectID aID)
 	: ObjectComponent(aID)

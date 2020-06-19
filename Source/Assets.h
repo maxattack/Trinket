@@ -5,9 +5,13 @@
 #include "Listener.h"
 #include "Name.h"
 #include "ObjectPool.h"
+#include "AssetData.h"
 
 // TODO: Filesystem Abstraction (physfs?)
+
+
 class AssetDatabase;
+
 
 //------------------------------------------------------------------------------------------
 // Weak-ptr wrapper to check for use-after-free
@@ -16,9 +20,9 @@ template<typename T>
 class AssetRef {
 private:
 	T* ptr;
-	#if TRINKET_CHECKED
+#if TRINKET_CHECKED
 	ObjectID id;
-	#endif
+#endif
 
 public:
 	AssetRef() noexcept = default;
@@ -28,18 +32,17 @@ public:
 
 	AssetRef(ForceInit) noexcept
 		: ptr(nullptr) {
-		#if TRINKET_CHECKED	
+#if TRINKET_CHECKED	
 		id = OBJECT_NIL;
-		#endif
+#endif
 	}
 
 	AssetRef(T* aPtr) noexcept
-		: ptr(aPtr) 
-	{
-		#if TRINKET_CHECKED	
+		: ptr(aPtr) {
+#if TRINKET_CHECKED	
 		id = ptr->ID();
 		CHECK_ASSERT(id.IsFingerprinted());
-		#endif
+#endif
 	}
 
 	inline T* GetComponent(const AssetDatabase* pAssets);
@@ -47,9 +50,9 @@ public:
 
 	void Reset() {
 		ptr = nullptr;
-		#if TRINKET_CHECKED	
+#if TRINKET_CHECKED	
 		id = OBJECT_NIL;
-		#endif
+#endif
 	}
 };
 
@@ -70,6 +73,8 @@ private:
 	enum Components { C_HANDLE, C_NAME, C_REF_COUNT };
 
 	ObjectMgr<Name, int32> mgr;   // shared resource objects
+	ObjectPool<AssetDataRef> data;
+
 	ListenerList<IAssetListener> listeners;
 
 public:
@@ -90,10 +95,14 @@ public:
 	ObjectID FindAsset(Name name) const;
 	void TryRename(ObjectID id, Name name);
 
+	eastl::string GetConfigPath(ObjectID id) const;
+
 };
 
-//------------------------------------------------------------------------------------------
-// AssetRef Impl
+
+
+
+
 
 template<typename T>
 inline T* AssetRef<T>::GetComponent(const AssetDatabase* pAssets) {

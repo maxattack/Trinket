@@ -56,3 +56,7 @@ void AssetDatabase::TryRename(ObjectID id, Name name) {
 		*pName = name;
 }
 
+eastl::string AssetDatabase::GetConfigPath(ObjectID id) const {
+	let pName = mgr.GetPool().TryGetComponent<C_NAME>(id);
+	return pName ? "Assets/" + pName->GetString() + ".ini" : "";
+}

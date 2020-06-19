@@ -4,6 +4,78 @@
 #include "Material.h"
 #include "Graphics.h"
 #include "Texture.h"
+#include <ini.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+
+MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath) {
+
+	struct TextureVarConfig {
+		eastl::string variableName;
+		eastl::string texturePath;
+	};
+
+	struct MaterialConfig {
+		eastl::string vertexShaderPath;
+		eastl::string pixelShaderPath;
+		eastl::vector<TextureVarConfig> textureVariables;
+	};
+
+	let handler = [](void* user, const char* section, const char* name, const char* value) {
+		auto pConfig = (MaterialConfig*)user;
+		#define SECTION(s) strcmp(section, s) == 0
+		#define MATCH(n) strcmp(name, n) == 0
+
+		if (SECTION("Material")) {
+			if (MATCH("vsh"))
+				pConfig->vertexShaderPath = value;
+			else if (MATCH("psh"))
+				pConfig->pixelShaderPath = value;
+		} else if (SECTION("Textures")) {
+			pConfig->textureVariables.emplace_back(TextureVarConfig { name, value });
+		}
+
+		#undef SECTION
+		#undef MATCH
+		return 1;
+	};
+
+	MaterialConfig config;
+	if (ini_parse(configPath, handler, &config))
+		return nullptr;
+
+	uint32 sz = 
+		sizeof(MaterialDataHeader) + 
+		config.textureVariables.size() * sizeof(uint32) + 
+		uint32(config.vertexShaderPath.size()) + 1 + 
+		uint32(config.pixelShaderPath.size()) + 1;
+	for(auto it : config.textureVariables)
+		sz += it.variableName.size() + it.texturePath.size() + 2;
+
+	let result = (MaterialDataHeader*) AllocAssetData(sz);
+	auto pStart = (uint8*) result;
+	auto pCurr = pStart + sizeof(MaterialDataHeader);
+	
+	let WriteString = [&](const eastl::string& str) {
+		memcpy(pCurr, str.c_str(), str.size());
+		pCurr += str.size();
+		*pCurr = 0;
+		++pCurr;
+	};
+
+	result->VertexShaderNameOffset = uint32(pCurr - pStart);
+	WriteString(config.vertexShaderPath);
+	result->PixelShaderNameOffset = uint32(pCurr - pStart);
+	WriteString(config.pixelShaderPath);
+	result->TextureVariablesOffset = uint32(pCurr - pStart);
+	result->TextureCount = (uint32) config.textureVariables.size();
+	for(auto it : config.textureVariables) {
+		WriteString(it.variableName);
+		WriteString(it.texturePath);
+	}
+
+	return result;
+}
 
 Material::Material(ObjectID aID) : ObjectComponent(aID) {}
 
