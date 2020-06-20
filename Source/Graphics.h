@@ -76,7 +76,7 @@ public:
 	Material* FindMaterial(Name path) { return GetMaterial(pAssets->FindAsset(path)); }
 	Material* GetMaterial(ObjectID id) { return DerefPP(materials.TryGetComponent<C_MATERIAL_ASSET>(id)); }
 
-	RefCntAutoPtr<ITexture> LoadTexture(ObjectID id, const TextureAssetData* pData);
+	ITexture* LoadTexture(ObjectID id, const TextureAssetData* pData);
 	ITexture* FindTexture(Name path) { return GetTexture(pAssets->FindAsset(path)); }
 	ITexture* GetTexture(ObjectID id) { 
 		if (id.IsNil()) 

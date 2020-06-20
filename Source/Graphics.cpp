@@ -256,16 +256,16 @@ Material* Graphics::LoadMaterial(ObjectID id, const MaterialAssetData* pData) {
 	return result;
 }
 
-RefCntAutoPtr<ITexture> Graphics::LoadTexture(ObjectID id, const TextureAssetData* pData) {
+ITexture* Graphics::LoadTexture(ObjectID id, const TextureAssetData* pData) {
 	let idOkay = 
 		pAssets->IsValid(id) && 
 		!textures.Contains(id);
 	if (!idOkay)
-		return RefCntAutoPtr<ITexture>();
+		return nullptr;
 
 	auto result = LoadTextureHandleFromAsset(pDisplay, pData);
 	if (!result)
-		return RefCntAutoPtr<ITexture>();
+		return nullptr;
 
 	let bAdded = textures.TryAppendObject(id, result);
 	CHECK_ASSERT(bAdded);
@@ -317,7 +317,7 @@ bool Graphics::AddRenderMesh(ObjectID id, const RenderMeshData& data) {
 }
 
 void Graphics::DrawDebugLine(const vec4& color, const vec3& start, const vec3& end) {
-#if TRINKET_TEST
+	#if TRINKET_TEST
 
 	if (lineCount >= DEBUG_LINE_CAPACITY)
 		return;
@@ -329,7 +329,7 @@ void Graphics::DrawDebugLine(const vec4& color, const vec3& start, const vec3& e
 	lineBuf[idx+1].color = color;
 	++lineCount;
 
-#endif
+	#endif
 }
 
 void Graphics::Draw() {
