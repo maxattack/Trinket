@@ -5,63 +5,70 @@
 #include "Display.h"
 #include "Object.h"
 #include "Math.h"
+#include "AssetData.h"
 
 struct MeshVertex {
 	vec3 position;
 	vec3 normal;
 	vec2 uv;
-	vec4 color;
+	vec4 color; // encode as 8bpc instead?
 };
 
 extern const LayoutElement MeshVertexLayoutElems[4];
 
-class SubMesh {
-private:
-	MeshVertex* vertices = nullptr;
-	uint32* index = nullptr;
-	RefCntAutoPtr<IBuffer> pVertexBuffer;
-	RefCntAutoPtr<IBuffer> pIndexBuffer;
-	int32 allocVertexCount = 0;
-	int32 allocIndexCount = 0;
-	int32 gpuVertexCount = 0;
-	int32 gpuIndexCount = 0;
-	uint32 dynamic : 1;
+struct SubmeshHeader {
+	uint32 VertexCount;
+	uint32 IndexCount;
+	uint32 VertexOffset;
+	uint32 IndexOffset;
+};
 
-public:
+struct MeshAssetData : AssetDataHeader {
+	static const schema_t SCHEMA = SCHEMA_MESH;
 
-	SubMesh() noexcept = default;
-	SubMesh(SubMesh&& mesh) noexcept;
-	SubMesh(const SubMesh&) = delete;
-	SubMesh& operator=(const SubMesh&) = delete;
-	~SubMesh();
+	uint32 SubmeshCount;
 
-	int32 GetAllocatedVertexCount() const { return allocVertexCount; }
-	int32 GetAllocatedIndexCount() const { return allocIndexCount; }
-	bool IsDynamic() const { return dynamic; }
-	bool IsAllocated() const { return vertices != nullptr; }
-	bool IsLoaded() const { return pVertexBuffer != nullptr; }
+	// Const Getters
+	const SubmeshHeader* SubmeshData(uint32 Idx) const { return Peek<SubmeshHeader>(this, sizeof(MeshAssetData) + Idx * sizeof(SubmeshHeader)); }
+	const MeshVertex* VertexData(uint32 Idx) const { return Peek<MeshVertex>(this, SubmeshData(Idx)->VertexOffset); }
+	const uint32* IndexData(uint32 Idx) const { return Peek<uint32>(this, SubmeshData(Idx)->IndexOffset); }
 
-	void AllocVertices(int vertexCount);
-	void AllocIndices(int indexCount);
-	void Dealloc();
-
-	MeshVertex* begin() { return vertices; }
-	MeshVertex* end() { return vertices + allocVertexCount; }
-
-	IBuffer* GetVertexBuffer() { return pVertexBuffer; }
-	IBuffer* GetIndexBuffer() { return pIndexBuffer; }
-
-	bool TryLoad(Graphics* gfx, bool dynamic = false);
-	bool TryUpdate(Graphics* gfx);
-	bool TryRelease(Graphics* gfx);
-	void DoDraw(Graphics* gfx);
-
+	// Helper Modifiers
+	SubmeshHeader* SubmeshData(uint32 Idx) { return Peek<SubmeshHeader>(this, sizeof(MeshAssetData) + Idx * sizeof(SubmeshHeader)); }
+	MeshVertex* VertexData(uint32 Idx) { return Peek<MeshVertex>(this, SubmeshData(Idx)->VertexOffset); }
+	uint32* IndexData(uint32 Idx) { return Peek<uint32>(this, SubmeshData(Idx)->IndexOffset); }
 
 	void ReverseWindingOrder();
 	void FlipNormals();
 	void SetColor(vec4 c);
-	void AllocPlaneXY(float extent);
-	void AllocCube(float extent);
+
+};
+
+MeshAssetData* ImportMeshAssetDataFromConfig(const char* configPath);
+MeshAssetData* CreateCubeMeshAssetData(float extent);
+MeshAssetData* CreatePlaneMeshAssetData(float extent);
+
+
+class SubMesh {
+private:
+	RefCntAutoPtr<IBuffer> pVertexBuffer;
+	RefCntAutoPtr<IBuffer> pIndexBuffer;
+	uint32 gpuVertexCount = 0;
+	uint32 gpuIndexCount = 0;
+	uint32 dynamic : 1;
+
+public:
+
+	bool IsDynamic() const { return dynamic; }
+	bool IsLoaded() const { return pVertexBuffer != nullptr; }
+
+	IBuffer* GetVertexBuffer() { return pVertexBuffer; }
+	IBuffer* GetIndexBuffer() { return pIndexBuffer; }
+
+	bool TryLoad(Graphics* gfx, bool dynamic, const MeshAssetData* pAsset, uint32 idx);
+	bool TryRelease(Graphics* gfx);
+	void DoDraw(Graphics* gfx);
+
 
 };
 
@@ -76,4 +83,6 @@ public:
 	// more of an aspirational interface, here, lol
 	int GetSubmeshCount() const { return 1; }
 	SubMesh& GetSubmesh(int idx) { return defaultSubmesh; }
+	bool TryLoad(Graphics* gfx, bool dynamic, const MeshAssetData* pAsset) { return defaultSubmesh.TryLoad(gfx, dynamic, pAsset, 0); }
+
 };

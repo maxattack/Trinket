@@ -4,7 +4,7 @@
 #include "Mesh.h"
 #include "Graphics.h"
 
-const LayoutElement MeshVertexLayoutElems[4] {
+const LayoutElement MeshVertexLayoutElems[4]{
 	LayoutElement{ 0, 0, 3, VT_FLOAT32, false },
 	LayoutElement{ 1, 0, 3, VT_FLOAT32, false },
 	LayoutElement{ 2, 0, 2, VT_FLOAT32, false },
@@ -12,90 +12,216 @@ const LayoutElement MeshVertexLayoutElems[4] {
 };
 
 
-SubMesh::SubMesh(SubMesh&& mesh) noexcept 
-	: vertices(mesh.vertices)
-	, index(mesh.index)
-	, pVertexBuffer(std::move(mesh.pVertexBuffer))
-	, pIndexBuffer(std::move(mesh.pIndexBuffer))
-	, allocVertexCount(mesh.allocVertexCount)
-	, allocIndexCount(mesh.allocIndexCount)
-	, gpuVertexCount(mesh.gpuVertexCount)
-	, gpuIndexCount(mesh.gpuIndexCount)
-	, dynamic(mesh.dynamic)
-{
-	mesh.vertices = nullptr;
-	mesh.index = nullptr;
+MeshAssetData* ImportMeshAssetDataFromConfig(const char* configPath) {
+	// LOL TODO
+	return nullptr;
 }
 
-SubMesh::~SubMesh() {
-	free(vertices);
-	free(index);
+MeshAssetData* CreateCubeMeshAssetData(float extent) {
+	
+	// Cube vertices
+	//
+	//      (-1,+1,+1)________________(+1,+1,+1)
+	//               /|              /|
+	//              / |             / |
+	//             /  |            /  |
+	//            /   |           /   |
+	//(-1,-1,+1) /____|__________/(+1,-1,+1)
+	//           |    |__________|____|
+	//           |   /(-1,+1,-1) |    /(+1,+1,-1)
+	//           |  /            |   /
+	//           | /             |  /
+	//           |/              | /
+	//           /_______________|/
+	//        (-1,-1,-1)       (+1,-1,-1)
+	//
+	
+	struct CubeVertex {
+		vec3 pos;
+		vec2 uv;
+		vec3 normal;
+	};
+
+	static const CubeVertex verts[] {
+		{vec3(-1,-1,-1), vec2(0,1), vec3(0, 0, -1)},
+		{vec3(-1,+1,-1), vec2(0,0), vec3(0, 0, -1)},
+		{vec3(+1,+1,-1), vec2(1,0), vec3(0, 0, -1)},
+		{vec3(+1,-1,-1), vec2(1,1), vec3(0, 0, -1)},
+	
+		{vec3(-1,-1,-1), vec2(0,1), vec3(0, -1, 0)},
+		{vec3(-1,-1,+1), vec2(0,0), vec3(0, -1, 0)},
+		{vec3(+1,-1,+1), vec2(1,0), vec3(0, -1, 0)},
+		{vec3(+1,-1,-1), vec2(1,1), vec3(0, -1, 0)},
+	
+		{vec3(+1,-1,-1), vec2(0,1), vec3(+1, 0, 0)},
+		{vec3(+1,-1,+1), vec2(1,1), vec3(+1, 0, 0)},
+		{vec3(+1,+1,+1), vec2(1,0), vec3(+1, 0, 0)},
+		{vec3(+1,+1,-1), vec2(0,0), vec3(+1, 0, 0)},
+	
+		{vec3(+1,+1,-1), vec2(0,1), vec3(0, +1, 0)},
+		{vec3(+1,+1,+1), vec2(0,0), vec3(0, +1, 0)},
+		{vec3(-1,+1,+1), vec2(1,0), vec3(0, +1, 0)},
+		{vec3(-1,+1,-1), vec2(1,1), vec3(0, +1, 0)},
+	
+		{vec3(-1,+1,-1), vec2(1,0), vec3(-1, 0, 0)},
+		{vec3(-1,+1,+1), vec2(0,0), vec3(-1, 0, 0)},
+		{vec3(-1,-1,+1), vec2(0,1), vec3(-1, 0, 0)},
+		{vec3(-1,-1,-1), vec2(1,1), vec3(-1, 0, 0)},
+	
+		{vec3(-1,-1,+1), vec2(1,1), vec3(0, 0, +1)},
+		{vec3(+1,-1,+1), vec2(0,1), vec3(0, 0, +1)},
+		{vec3(+1,+1,+1), vec2(0,0), vec3(0, 0, +1)},
+		{vec3(-1,+1,+1), vec2(1,0), vec3(0, 0, +1)}
+	};
+	
+	static const uint32 indices[] {
+		2,0,1,    2,3,0,
+		4,6,5,    4,7,6,
+		8,10,9,   8,11,10,
+		12,14,13, 12,15,14,
+		16,18,17, 16,19,18,
+		20,21,22, 20,22,23
+	};
+	
+	let sz = 
+		sizeof(MeshAssetData) + 
+		sizeof(SubmeshHeader) + 
+		sizeof(MeshVertex) * _countof(verts) + 
+		sizeof(uint32) * _countof(indices);
+	
+	let result = AllocAssetData<MeshAssetData>(sz);
+	result->SubmeshCount = 1;
+
+	AssetDataWriter writer (result, sizeof(MeshAssetData));
+	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
+	pSubmesh->IndexCount = _countof(indices);
+	pSubmesh->VertexCount = _countof(verts);
+	pSubmesh->VertexOffset = writer.GetOffset();
+
+	for(int it=0; it<24; ++it) {
+		MeshVertex p;
+		p.position = extent * verts[it].pos;
+		p.uv = verts[it].uv;
+		p.normal = verts[it].normal;
+		p.color = vec4(1, 1, 1, 1);
+		writer.WriteValue(p);
+	}
+
+	pSubmesh->IndexOffset = writer.GetOffset();
+	writer.WriteData(indices, sizeof(indices));
+
+	return result;
 }
 
-void SubMesh::AllocVertices(int vertexCount) {
-	allocVertexCount = vertexCount;
-	let newVertices = (MeshVertex*) realloc(vertices, vertexCount * sizeof(MeshVertex));
-	CHECK_ASSERT(newVertices != nullptr);
-	vertices = newVertices;
+MeshAssetData* CreatePlaneMeshAssetData(float extent) {
+
+	let sz = 
+		sizeof(MeshAssetData) + 
+		sizeof(SubmeshHeader) + 
+		sizeof(MeshVertex) * 4 + 
+		sizeof(uint32) * 6;
+	
+	let result = AllocAssetData<MeshAssetData>(sz);
+	result->SubmeshCount = 1;
+	AssetDataWriter writer (result, sizeof(MeshAssetData));
+	
+	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
+	pSubmesh->IndexCount = 6;
+	pSubmesh->VertexCount = 4;
+	pSubmesh->VertexOffset = writer.GetOffset();
+
+	MeshVertex vertices[4] {
+		{ vec3(-extent, -extent, 0), vec3(0, 0, 1), vec2(0, 0), vec4(1, 1, 1, 1) },
+		{ vec3( extent, -extent, 0), vec3(0, 0, 1), vec2(1, 0), vec4(1, 1, 1, 1) },
+		{ vec3( extent,  extent, 0), vec3(0, 0, 1), vec2(1, 1), vec4(1, 1, 1, 1) },
+		{ vec3(-extent,  extent, 0), vec3(0, 0, 1), vec2(0, 1), vec4(1, 1, 1, 1) }
+	};
+	writer.WriteData(vertices, 4 * sizeof(MeshVertex));
+
+	pSubmesh->IndexOffset = writer.GetOffset();
+	uint32 indices[6] { 
+		0,1,2, 
+		3,0,2 
+	};
+
+	writer.WriteData(indices, 6 * sizeof(uint32));
+
+	return result;
 }
 
-void SubMesh::AllocIndices(int indexCount) {
-	allocIndexCount = indexCount;
-	let newIndex = (uint32*) realloc(index, indexCount * sizeof(uint32));
-	CHECK_ASSERT(newIndex != nullptr);
-	index = newIndex;
+void MeshAssetData::ReverseWindingOrder() {
+	for(uint32 sub=0; sub<SubmeshCount; ++sub) {
+		let pSubmesh = SubmeshData(sub);
+		if (pSubmesh->IndexCount > 0) {
+			let pIndices = IndexData(sub);
+			for(uint it=0; it<pSubmesh->IndexCount; it+=3)
+				eastl::swap(pIndices[it+1], pIndices[it+2]);
+		} else {
+			let pVertices = VertexData(sub);
+			for(uint it=0; it<pSubmesh->VertexCount; it+=3)
+				eastl::swap(pVertices[it+1], pVertices[it+2]);
+		}
+	}
 }
 
-void SubMesh::Dealloc() {
-	free(vertices);
-	free(index);
-	vertices = nullptr;
-	index = nullptr;
-	allocVertexCount = 0;
-	allocIndexCount = 0;
+void MeshAssetData::FlipNormals() {
+	for (uint32 sub = 0; sub < SubmeshCount; ++sub) {
+		let pSubmesh = SubmeshData(sub);
+		let pVertices = VertexData(sub);
+		for(uint32 it=0; it<pSubmesh->VertexCount; ++it)
+			pVertices[it].normal = -pVertices[it].normal;
+	}
 }
 
-bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic) {
-	let statusOK = !IsLoaded() && IsAllocated();
-	if (!statusOK)
+void MeshAssetData::SetColor(vec4 c) {
+	for (uint32 sub = 0; sub < SubmeshCount; ++sub) {
+		let pSubmesh = SubmeshData(sub);
+		let pVertices = VertexData(sub);
+		for (uint32 it = 0; it < pSubmesh->VertexCount; ++it)
+			pVertices[it].color;
+	}
+}
+
+
+bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic, const MeshAssetData* pAsset, uint32 idx) {
+	if (IsLoaded())
 		return false;
 
-	gpuVertexCount = allocVertexCount;
-	gpuIndexCount = allocIndexCount;
+	let pSubmesh = pAsset->SubmeshData(idx);
+	let pVertices = pAsset->VertexData(idx);
+	let pIndices = pAsset->IndexData(idx);
+
+	gpuVertexCount = pSubmesh->VertexCount;
+	gpuIndexCount = pSubmesh->IndexCount;
 	dynamic = aDynamic;
 
 	{
-		let vertexByteCount = static_cast<Uint32>(sizeof(MeshVertex) * allocVertexCount);
+		let vertexByteCount = uint32(sizeof(MeshVertex) * gpuVertexCount);
 		BufferDesc VBD;
 		VBD.Name = "VB_Mesh"; // get name for mesh?
 		VBD.Usage = aDynamic ? USAGE_DEFAULT : USAGE_STATIC;
 		VBD.BindFlags = BIND_VERTEX_BUFFER;
 		VBD.uiSizeInBytes = vertexByteCount;
 		BufferData buf;
-		buf.pData = vertices;
+		buf.pData = pVertices;
 		buf.DataSize = vertexByteCount;
 		gfx->GetDevice()->CreateBuffer(VBD, &buf, &pVertexBuffer);
 	}
 
 	if (gpuIndexCount > 0) {
-		let indexByteCount = static_cast<Uint32>(sizeof(uint32) * allocIndexCount);
+		let indexByteCount = uint32(sizeof(uint32) * gpuIndexCount);
 		BufferDesc IBD;
 		IBD.Name = "IB_Mesh";
 		IBD.Usage = USAGE_STATIC;
 		IBD.BindFlags = BIND_INDEX_BUFFER;
 		IBD.uiSizeInBytes = indexByteCount;
 		BufferData buf;
-		buf.pData = index;
+		buf.pData = pIndices;
 		buf.DataSize = indexByteCount;
 		gfx->GetDevice()->CreateBuffer(IBD, &buf, &pIndexBuffer);
 	}
 	
 	return true;
-}
-
-bool SubMesh::TryUpdate(Graphics* gfx) {
-	// TODO
-	return false;
 }
 
 bool SubMesh::TryRelease(Graphics* gfx) {
@@ -123,122 +249,4 @@ void SubMesh::DoDraw(Graphics* gfx) {
 		draw.NumVertices = gpuVertexCount;
 		gfx->GetContext()->Draw(draw);
 	}
-}
-
-void SubMesh::ReverseWindingOrder() {
-	if (index) {
-		for (int it=0; it<allocIndexCount; it+=3)
-			std::swap(index[it + 1], index[it + 2]);
-	} else if (vertices) {
-		for(int it=0; it<allocVertexCount; it+=3)
-			std::swap(vertices[it+1], vertices[it+2]);
-	}
-}
-
-void SubMesh::FlipNormals() {
-}
-
-void SubMesh::SetColor(vec4 c) {
-	for(auto& it : *this) {
-		it.color = c;
-	}
-}
-
-void SubMesh::AllocPlaneXY(float extent) {
-	AllocVertices(4);
-	AllocIndices(6);
-
-	vertices[0] = { vec3(-extent, -extent, 0), vec3(0, 0, 1), vec2(0, 0), vec4(1, 1, 1, 1) };
-	vertices[1] = { vec3( extent, -extent, 0), vec3(0, 0, 1), vec2(1, 0), vec4(1, 1, 1, 1) };
-	vertices[2] = { vec3( extent,  extent, 0), vec3(0, 0, 1), vec2(1, 1), vec4(1, 1, 1, 1) };
-	vertices[3] = { vec3(-extent,  extent, 0), vec3(0, 0, 1), vec2(0, 1), vec4(1, 1, 1, 1) };
-
-	index[0] = 0;
-	index[1] = 1;
-	index[2] = 2;
-	index[3] = 3;
-	index[4] = 0;
-	index[5] = 2;
-}
-
-void SubMesh::AllocCube(float extent) {
-
-	struct CubeVertex
-	{
-		vec3 pos;
-		vec2 uv;
-		vec3 normal;
-	};
-
-	// Cube vertices
-
-	//      (-1,+1,+1)________________(+1,+1,+1)
-	//               /|              /|
-	//              / |             / |
-	//             /  |            /  |
-	//            /   |           /   |
-	//(-1,-1,+1) /____|__________/(+1,-1,+1)
-	//           |    |__________|____|
-	//           |   /(-1,+1,-1) |    /(+1,+1,-1)
-	//           |  /            |   /
-	//           | /             |  /
-	//           |/              | /
-	//           /_______________|/
-	//        (-1,-1,-1)       (+1,-1,-1)
-	//
-
-	// clang-format off
-	CubeVertex CubeVerts[] {
-		{vec3(-1,-1,-1), vec2(0,1), vec3(0, 0, -1)},
-		{vec3(-1,+1,-1), vec2(0,0), vec3(0, 0, -1)},
-		{vec3(+1,+1,-1), vec2(1,0), vec3(0, 0, -1)},
-		{vec3(+1,-1,-1), vec2(1,1), vec3(0, 0, -1)},
-
-		{vec3(-1,-1,-1), vec2(0,1), vec3(0, -1, 0)},
-		{vec3(-1,-1,+1), vec2(0,0), vec3(0, -1, 0)},
-		{vec3(+1,-1,+1), vec2(1,0), vec3(0, -1, 0)},
-		{vec3(+1,-1,-1), vec2(1,1), vec3(0, -1, 0)},
-
-		{vec3(+1,-1,-1), vec2(0,1), vec3(+1, 0, 0)},
-		{vec3(+1,-1,+1), vec2(1,1), vec3(+1, 0, 0)},
-		{vec3(+1,+1,+1), vec2(1,0), vec3(+1, 0, 0)},
-		{vec3(+1,+1,-1), vec2(0,0), vec3(+1, 0, 0)},
-
-		{vec3(+1,+1,-1), vec2(0,1), vec3(0, +1, 0)},
-		{vec3(+1,+1,+1), vec2(0,0), vec3(0, +1, 0)},
-		{vec3(-1,+1,+1), vec2(1,0), vec3(0, +1, 0)},
-		{vec3(-1,+1,-1), vec2(1,1), vec3(0, +1, 0)},
-
-		{vec3(-1,+1,-1), vec2(1,0), vec3(-1, 0, 0)},
-		{vec3(-1,+1,+1), vec2(0,0), vec3(-1, 0, 0)},
-		{vec3(-1,-1,+1), vec2(0,1), vec3(-1, 0, 0)},
-		{vec3(-1,-1,-1), vec2(1,1), vec3(-1, 0, 0)},
-
-		{vec3(-1,-1,+1), vec2(1,1), vec3(0, 0, +1)},
-		{vec3(+1,-1,+1), vec2(0,1), vec3(0, 0, +1)},
-		{vec3(+1,+1,+1), vec2(0,0), vec3(0, 0, +1)},
-		{vec3(-1,+1,+1), vec2(1,0), vec3(0, 0, +1)}
-	};
-
-	Uint32 Indices[] {
-		2,0,1,    2,3,0,
-		4,6,5,    4,7,6,
-		8,10,9,   8,11,10,
-		12,14,13, 12,15,14,
-		16,18,17, 16,19,18,
-		20,21,22, 20,22,23
-	};
-
-	AllocVertices(24);
-	AllocIndices(_countof(Indices));
-
-	for(auto it=0; it<24; ++it) {
-		auto& p = vertices[it];
-		p.position = extent * CubeVerts[it].pos;
-		p.uv = CubeVerts[it].uv;
-		p.normal = CubeVerts[it].normal;
-		p.color = vec4(1, 1, 1, 1);
-	}
-
-	memcpy(index, Indices, sizeof(Indices));
 }

@@ -214,47 +214,46 @@ static int l_set_rotation(lua_State* lua) {
 }
 
 static int l_create_material(lua_State* lua) {
+	using namespace eastl::literals::string_literals;
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
 
-	eastl::string nameStr(name);
-	let vertexFile = nameStr + ".vsh";
-	let pixelFile = nameStr + ".psh";
+	// load the material data
+	let materialConfig = name + ".ini"s;
+	let pAsset = ImportMaterialAssetDataFromConfig(materialConfig.c_str());
+	if (!pAsset) {
+		lua_pushobj(lua, ObjectTag::UNDEFINED, OBJECT_NIL);
+		return 1;
+	}
+	AssetDataRef raii(pAsset);
 
-	Material* result = nullptr;
-
-	if (lua_gettop(lua) > 1) {
-		let textureName = luaL_checkstring(lua, 2);
-		let textureFile = "Assets/" + eastl::string(textureName) + ".psd";
-
-		TextureArg targ;
-		targ.variableName = "g_Texture";
-		targ.pTexture = world.gfx.CreateTexture(textureName);
-		targ.pTexture->AllocFile(textureFile.c_str());
-		targ.pTexture->TryLoad(&world.gfx);
-		targ.pTexture->Dealloc();
-
-		MaterialArgs args;
-		args.vertexShaderFile = vertexFile.c_str();
-		args.pixelShaderFile = pixelFile.c_str();
-		args.numTextures = 1;
-		args.pTextureArgs = &targ;
-		result = world.gfx.CreateMaterial(name, args);
-
-	} else {
-		MaterialArgs args;
-		args.vertexShaderFile = vertexFile.c_str();
-		args.pixelShaderFile = pixelFile.c_str();
-		args.numTextures = 0;
-		args.pTextureArgs = nullptr;
-		result = world.gfx.CreateMaterial(name, args);
+	// ensure all our textures are loaded
+	auto reader = pAsset->TextureVariables();
+	for(uint32 it=0; it<pAsset->TextureCount; ++it) {
+		reader.ReadString(); // skip var name
+		let path = reader.ReadString();
+		let tid = world.db.FindAsset(path);
+		if (tid.IsNil()) {
+			let pTexData = ImportTextureAssetDataFromConfig(path);
+			if (!pTexData) {
+				lua_pushobj(lua, ObjectTag::UNDEFINED, OBJECT_NIL);
+				return 1;
+			}
+			let tid = world.db.CreateObject(path);
+			world.gfx.LoadTexture(tid, pTexData);
+			FreeAssetData(pTexData);
+		}
 	}
 
-
-	if (result)
-		lua_pushobj(lua, ObjectTag::MATERIAL_ASSET, result->ID());
-	else 
+	// create the material
+	let id = world.db.CreateObject(name);
+	let material = world.gfx.LoadMaterial(id, pAsset);
+	if (!material) {
+		world.db.Release(id);
 		lua_pushobj(lua, ObjectTag::UNDEFINED, OBJECT_NIL);
+		return 1;
+	}
+	lua_pushobj(lua, ObjectTag::MATERIAL_ASSET, id);
 	return 1;
 }
 
@@ -262,15 +261,18 @@ static int l_create_cube_mesh(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
 	let extent = (float) luaL_checknumber(lua, 2);
-	let mesh = world.gfx.CreateMesh(name);
-	mesh->GetSubmesh(0).AllocCube(extent);
-	for (auto& it : mesh->GetSubmesh(0)) {
+	let meshData = CreateCubeMeshAssetData(extent);
+	let pVertices = meshData->VertexData(0);
+	let nverts = meshData->SubmeshData(0)->VertexCount;
+	for(uint32 it=0; it<nverts; ++it) {
 		let hue = float(rand() % 360);
-		it.color = vec4(glm::rgbColor(vec3(hue, 1.f, 1.f)), 1.f);
+		pVertices[it].color = vec4(glm::rgbColor(vec3(hue, 1.f, 1.f)), 1.f);
 	}
-	mesh->GetSubmesh(0).TryLoad(&world.gfx);
-	mesh->GetSubmesh(0).Dealloc();
-	lua_pushobj(lua, ObjectTag::MESH_ASSET, mesh->ID());
+	
+	let id = world.db.CreateObject(name);
+	world.gfx.AddMesh(id)->TryLoad(&world.gfx, false, meshData);
+	FreeAssetData(meshData);
+	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
 }
 
@@ -278,11 +280,11 @@ static int l_create_plane_mesh(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
 	let extent = (float) luaL_checknumber(lua, 2);
-	let plane = world.gfx.CreateMesh(name);
-	plane->GetSubmesh(0).AllocPlaneXY(extent);
-	plane->GetSubmesh(0).TryLoad(&world.gfx);
-	plane->GetSubmesh(0).Dealloc();
-	lua_pushobj(lua, ObjectTag::MESH_ASSET, plane->ID());
+	let meshData = CreatePlaneMeshAssetData(extent);
+	let id = world.db.CreateObject(name);
+	world.gfx.AddMesh(id)->TryLoad(&world.gfx, false, meshData);
+	FreeAssetData(meshData);
+	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
 }
 
@@ -294,7 +296,7 @@ static int l_attach_rendermesh_to(lua_State* lua) {
 	let pMesh = world.gfx.GetMesh(mesh.id);
 	let pMaterial = world.gfx.GetMaterial(material.id);
 	RenderMeshData rmd { pMesh, pMaterial, shadow };	
-	let result = world.gfx.TryAttachRenderMeshTo(obj.id, rmd);
+	let result = world.gfx.AddRenderMesh(obj.id, rmd);
 	lua_pushboolean(lua, result);
 	return 1;
 }

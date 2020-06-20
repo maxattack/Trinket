@@ -8,33 +8,24 @@
 #include "AssetData.h"
 
 
-struct MaterialDataHeader : AssetDataHeader {
+struct MaterialAssetData : AssetDataHeader {
+	static const schema_t SCHEMA = SCHEMA_MATERIAL;
+
+	// TODO: multiple passes (see for ref: submeshes in MeshAssetDatas)
+
 	uint32 VertexShaderNameOffset;
 	uint32 PixelShaderNameOffset;
 	uint32 TextureVariablesOffset;
 	uint32 TextureCount;
 
-	const char* VertexShaderPath() const { return GetDataAt<char>(this, VertexShaderNameOffset); }
-	const char* PixelShaderPath() const { return GetDataAt<char>(this, PixelShaderNameOffset); }
-	const char* GetTextureVariables() const { return GetDataAt<char>(this, TextureVariablesOffset); }
+	const char* VertexShaderPath() const { return Peek<char>(this, VertexShaderNameOffset); }
+	const char* PixelShaderPath() const { return Peek<char>(this, PixelShaderNameOffset); }
+
+	// Alternative name/path string pairs
+	AssetDataReader TextureVariables() const { return AssetDataReader(this, TextureVariablesOffset); }
 };
 
-MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath);
-
-
-
-
-struct TextureArg {
-	const char* variableName;
-	Texture* pTexture;
-};
-
-struct MaterialArgs {
-	const char* vertexShaderFile;
-	const char* pixelShaderFile;
-	TextureArg* pTextureArgs;
-	int numTextures;
-};
+MaterialAssetData* ImportMaterialAssetDataFromConfig(const char* configPath);
 
 class MaterialPass {
 private:
@@ -50,12 +41,10 @@ public:
 	MaterialPass& operator=(const MaterialPass&) = delete;
 	
 	bool IsLoaded() const { return pMaterialPipelineState; }
-	bool TryLoad(Graphics* pGraphics, class Material* pCaller, const MaterialArgs& args);
+	bool TryLoad(Graphics* pGraphics, class Material* pCaller, const MaterialAssetData *pData, int Idx);
 	bool TryUnload(Graphics* pGraphics);
 
 	bool Bind(Graphics* pGraphics);
-
-
 };
 
 class Material : public ObjectComponent {
@@ -70,7 +59,7 @@ public:
 	MaterialPass& GetPass(int idx) { return defaultMaterialPass; }
 
 	bool IsLoaded() const { return defaultMaterialPass.IsLoaded(); }
-	bool TryLoad(Graphics* pGraphics, const MaterialArgs& args) { return defaultMaterialPass.TryLoad(pGraphics, this, args); }
+	bool TryLoad(Graphics* pGraphics, const MaterialAssetData* pData) { return defaultMaterialPass.TryLoad(pGraphics, this, pData, 0); }
 	bool TryUnload(Graphics* pGraphics) { return defaultMaterialPass.TryUnload(pGraphics); }
 
 };

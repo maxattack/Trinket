@@ -6,30 +6,40 @@
 #include <stb_image.h>
 #include <ini.h>
 
-TextureDataHeader* LoadTextureAssetDataFromConfig(const char* configPath) {
+TextureAssetData* ImportTextureAssetDataFromConfig(const char* configPath) {
+	using namespace eastl::literals::string_literals;
 
 	struct TextureConfig {
+		bool hasTextureSection = false;
 		eastl::string path;
 	};
 
 	let handler = [](void* user, const char* section, const char* name, const char* value) {
 		auto pConfig = (TextureConfig*) user;
 		
-		#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+		#define SECTION(s) strcmp(section, s) == 0
+		#define MATCH(n) strcmp(name, n) == 0
 
-		if (MATCH("Texture", "path"))
-			pConfig->path = value;
+		if (SECTION("Texture"))
+		{
+			pConfig->hasTextureSection = true;
+			if (MATCH("path"))
+				pConfig->path = "Assets/"s + value;
+		}
 		
+		#undef SECTION		
 		#undef MATCH
 
 		return 1;
 	};
 
 	TextureConfig config;
-	if (ini_parse(configPath, handler, &config))
+	eastl::string iniPath = "Assets/"s + configPath;
+	if (ini_parse(iniPath.c_str(), handler, &config))
 		return nullptr;
 
-	config.path = "Assets/" + config.path;
+	if (!config.hasTextureSection)
+		return nullptr;
 	
 	int w, h, chan;
 	let pData = stbi_load(config.path.c_str(), &w, &h, &chan, 4);
@@ -38,112 +48,40 @@ TextureDataHeader* LoadTextureAssetDataFromConfig(const char* configPath) {
 
 	let bytesPerPixel = 4;
 	let dataSize = bytesPerPixel * w * h;
-	let result = (TextureDataHeader*) AllocAssetData(sizeof(TextureDataHeader) + dataSize);
+	let result = AllocAssetData<TextureAssetData>(sizeof(TextureAssetData) + dataSize);
+	result->TextureWidth = (uint16) w;
+	result->TextureHeight = (uint16) h;
 
-	result->TextureWidth = (uint32) w;
-	result->TextureHeight = (uint32) h;
-	memcpy(result->TextureData(), pData, dataSize);
+	AssetDataWriter writer(result, sizeof(TextureAssetData));
+	writer.WriteData(pData, dataSize);
 
 	stbi_image_free(pData);
 
 	return result;
 }
 
-
-
-
-
-Texture::Texture(ObjectID aID)
-	: ObjectComponent(aID)
-{}
-
-Texture::~Texture() {
-	if (pData)
-		stbi_image_free(pData);
-}
-
-bool Texture::Alloc(uint32 w, uint32 h) {
-	let earlyOut = pData != nullptr || w * h == 0;
-	if (earlyOut)
-		return false;
-
-	// TODO: make sure we're using the same allocator as STB
-	// TODO: make sure w/h are PoT?
-
-
-	pData = malloc(size_t(w) * size_t(h) * 4);
-	if (!pData)
-		return false; 
-
-	allocWidth = w;
-	allocHeight = h;
-	return true;
-}
-
-bool Texture::AllocFile(const char* filename) {
-	if (pData)
-		return false;
-
-	int w, h, chan;
-	pData = stbi_load(filename, &w, &h, &chan, 4);
+RefCntAutoPtr<ITexture> LoadTextureHandleFromAsset(Display* pDisplay, const TextureAssetData* pData) {
+	RefCntAutoPtr<ITexture> pResult;
 	if (pData == nullptr)
-		return false;
-
-	allocWidth = w;
-	allocHeight = h;
-	return true;
-}
-
-bool Texture::Dealloc() {
-	if (!pData) 
-		return false;
-
-	stbi_image_free(pData);
-	allocWidth = 0;
-	allocHeight = 0;
-	pData = nullptr;
-	return true;
-}
-
-bool Texture::TryLoad(Graphics* pGraphics) {
-
-	let earlyOut = IsLoaded() || pData == nullptr || allocWidth * allocHeight == 0;
-	if (earlyOut)
-		return false;
+		return pResult;
 
 	TextureDesc desc;
 	desc.Type = RESOURCE_DIMENSION::RESOURCE_DIM_TEX_2D;
-	desc.Width = allocWidth;
-	desc.Height = allocHeight;
+	desc.Width = pData->TextureWidth;
+	desc.Height = pData->TextureHeight;
 	desc.Format = TEXTURE_FORMAT::TEX_FORMAT_RGBA8_UNORM_SRGB;
 	desc.Usage = USAGE::USAGE_STATIC;
 	desc.BindFlags = BIND_FLAGS::BIND_SHADER_RESOURCE;
 
 	TextureSubResData texSubResData;
-	texSubResData.pData = pData;
-	texSubResData.Stride = 4 * allocWidth;
-
+	texSubResData.pData = pData->Data();
+	texSubResData.Stride = pData->DataStride();
 
 	TextureData texData;
 	texData.NumSubresources = 1;
 	texData.pSubResources = &texSubResData;
 
-	pGraphics->GetDevice()->CreateTexture(desc, &texData, &pTexture);
-	if (!IsLoaded())
-		return false;
+	pDisplay->GetDevice()->CreateTexture(desc, &texData, &pResult);
 
-	loadWidth = allocWidth;
-	loadHeight = allocHeight;
-	return true;
+	return pResult;
 }
-
-bool Texture::TryUnload() {
-	if (!IsLoaded())
-		return false;
-	pTexture.Release();
-	loadWidth = 0;
-	loadHeight = 0;
-	return true;
-}
-
-

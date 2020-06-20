@@ -31,8 +31,8 @@ union ObjectHandle {
 	bool IsUndefined() const { return tag == ObjectTag::UNDEFINED; }
 	bool IsSceneObject() const { return tag == ObjectTag::SCENE_OBJECT; }
 	bool IsSublevel() const { return tag == ObjectTag::SUBLEVEL_OBJECT; }
-	bool IsMaterialAsset() const { return tag == ObjectTag::MATERIAL_ASSET; }
-	bool IsMeshAsset() const { return tag == ObjectTag::MESH_ASSET; }
+	bool IsMaterialAssetData() const { return tag == ObjectTag::MATERIAL_ASSET; }
+	bool IsMeshAssetData() const { return tag == ObjectTag::MESH_ASSET; }
 	bool IsNil() const { return id.IsNil(); }
 };
 

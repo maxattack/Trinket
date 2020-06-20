@@ -12,16 +12,16 @@
 int main(int argc, char** argv) {
     using namespace std;
 
-	if (let mat = LoadMaterialAssetDataFromConfig("Assets/checkerboard_m.ini")) {
+	/*
+
+	if (let mat = ImportMaterialAssetDataFromConfig("checkerboard_m.ini")) {
 		cout << "VSH: " << mat->VertexShaderPath() << endl;
 		cout << "PSH: " << mat->PixelShaderPath() << endl;
 		let N = mat->TextureCount;
-		auto pTex = mat->GetTextureVariables();
+		auto reader = mat->TextureVariables();
 		for(uint32 it=0; it<N; ++it) {
-			let name = pTex;
-			pTex += strlen(name) + 1;
-			let path = pTex;
-			pTex += strlen(path) + 1;
+			let name = reader.ReadString();
+			let path = reader.ReadString();
 			cout << "Variable: " << name << " = " << path << endl;
 		}
 		FreeAssetData(mat);
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 		cout << "No Dice" << endl;
 	}
 
-	if (let checkerboardData = LoadTextureAssetDataFromConfig("Assets/checkerboard_t.ini")) {
+	if (let checkerboardData = ImportTextureAssetDataFromConfig("checkerboard_t.ini")) {
 		cout << "Width = " << checkerboardData->TextureWidth << endl;
 		cout << "Height = " << checkerboardData->TextureHeight << endl;
 		cout << "Size = " << checkerboardData->ByteCount << endl;
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 	} else {
 		cout << "No Dice" << endl;
 	}
-	getchar();
+	getchar();*/
 
 	// init sdl
 	srand(clock());

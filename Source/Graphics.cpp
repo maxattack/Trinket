@@ -216,7 +216,6 @@ Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel)
 Graphics::~Graphics() {
 	pAssets->RemoveListener(this);
 	pScene->RemoveListener(this);
-	meshAssets.Clear();
 }
 
 void Graphics::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {
@@ -235,51 +234,67 @@ void Graphics::Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectI
 	// TODO
 }
 
-Material* Graphics::CreateMaterial(Name name, const MaterialArgs& Args) {
+Material* Graphics::LoadMaterial(ObjectID id, const MaterialAssetData* pData) {
+	let idOkay = 
+		pAssets->IsValid(id) && 
+		!materials.Contains(id);
+	if (!idOkay)
+		return nullptr;
 
-	// add asset object
-	let id = pAssets->CreateObject(name);
 	let result = NewObjectComponent<Material>(id);
-	materialAssets.TryAppendObject(id, result);
+	if (!result->TryLoad(this, pData)) {
+		FreeObjectComponent(result);
+		return nullptr;
+	}
 
-	// defer this?
-	result->TryLoad(this, Args);
-	for(int it=0; it<Args.numTextures; ++it)
-		pAssets->AddRef(Args.pTextureArgs[it].pTexture->ID());
+	let bAdded = materials.TryAppendObject(id, result);
+	CHECK_ASSERT(bAdded);
 
-	// add render passes
-	for(int it=0; it<result->NumPasses(); ++it)
-		passes.push_back(RenderPass { result, it, 0 });
+	for (int it = 0; it < result->NumPasses(); ++it)
+		passes.push_back(RenderPass{ result, it, 0 });
 
 	return result;
 }
 
-Texture* Graphics::CreateTexture(Name name) {
-	let id = pAssets->CreateObject(name);
-	let result = NewObjectComponent<Texture>(id);
-	textureAssets.TryAppendObject(id, result);
+RefCntAutoPtr<ITexture> Graphics::LoadTexture(ObjectID id, const TextureAssetData* pData) {
+	let idOkay = 
+		pAssets->IsValid(id) && 
+		!textures.Contains(id);
+	if (!idOkay)
+		return RefCntAutoPtr<ITexture>();
+
+	auto result = LoadTextureHandleFromAsset(pDisplay, pData);
+	if (!result)
+		return RefCntAutoPtr<ITexture>();
+
+	let bAdded = textures.TryAppendObject(id, result);
+	CHECK_ASSERT(bAdded);
+
 	return result;
 }
 
-Mesh* Graphics::CreateMesh(Name name) {
-	let id = pAssets->CreateObject(name);
+Mesh* Graphics::AddMesh(ObjectID id) {
+	let idOkay =
+		pAssets->IsValid(id) &&
+		!meshes.Contains(id);
+	if (!idOkay)
+		return nullptr;
+
 	let result = NewObjectComponent<Mesh>(id);
-	meshAssets.TryAppendObject(id, result);
+	meshes.TryAppendObject(id, result);
 	return result;
 }
 
-bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {
+bool Graphics::AddRenderMesh(ObjectID id, const RenderMeshData& data) {
 
 	// check refs
 	if (!pScene->IsValid(id))
 		return false;
 
-	Mesh* pMesh = data.pMesh.GetComponent(pAssets);
-	if (pMesh == nullptr)
+	if (data.pMesh == nullptr)
 		return false;
 	
-	Material* pMaterial = data.pMaterial.GetComponent(pAssets);
-	if (pMaterial == nullptr)
+	if (data.pMaterial == nullptr)
 		return false;
 
 	if (!meshRenderers.TryAppendObject(id, data))
@@ -289,25 +304,16 @@ bool Graphics::TryAttachRenderMeshTo(ObjectID id, const RenderMeshData& data) {
 	int itemIdx = 0;
 	for (auto pit = passes.begin(); pit != passes.end(); ++pit)
 	{
-		if (pit->pMaterial == pMaterial)
+		if (pit->pMaterial == data.pMaterial)
 		{
-			for (uint16 submeshIdx = 0; submeshIdx < pMesh->GetSubmeshCount(); ++submeshIdx) 
-				items.insert(items.begin() + itemIdx, RenderItem { pMesh, id, submeshIdx, data.castsShadow });
-			pit->itemCount += pMesh->GetSubmeshCount();
+			for (uint16 submeshIdx = 0; submeshIdx < data.pMesh->GetSubmeshCount(); ++submeshIdx) 
+				items.insert(items.begin() + itemIdx, RenderItem { data.pMesh, id, submeshIdx, data.castsShadow });
+			pit->itemCount += data.pMesh->GetSubmeshCount();
 		}
 		itemIdx += pit->itemCount;
 	}
 
 	return true;
-}
-
-const RenderMeshData* Graphics::GetRenderMeshFor(ObjectID id) const {
-	return meshRenderers.TryGetComponent<C_RENDER_MESH>(id);
-}
-
-bool Graphics::TryReleaseRenderMeshFor(ObjectID id) {
-	// TODO
-	return false;
 }
 
 void Graphics::DrawDebugLine(const vec4& color, const vec3& start, const vec3& end) {

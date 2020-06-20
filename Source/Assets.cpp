@@ -55,8 +55,16 @@ void AssetDatabase::TryRename(ObjectID id, Name name) {
 	if (let pName = mgr.TryGetComponent<C_NAME>(id))
 		*pName = name;
 }
+//
+//eastl::string AssetDatabase::GetConfigPath(ObjectID id) const {
+//	let pName = mgr.GetPool().TryGetComponent<C_NAME>(id);
+//	return pName ? "Assets/" + pName->GetString() + ".ini" : "";
+//}
 
-eastl::string AssetDatabase::GetConfigPath(ObjectID id) const {
-	let pName = mgr.GetPool().TryGetComponent<C_NAME>(id);
-	return pName ? "Assets/" + pName->GetString() + ".ini" : "";
+void AssetDatabase::RegisterAssetData(ObjectID id, AssetDataHeader* pData) {
+	data.TryAppendObject(id, pData);
+}
+
+void AssetDatabase::ClearAssetData(ObjectID id) {
+	data.TryReleaseObject_Swap(id);
 }

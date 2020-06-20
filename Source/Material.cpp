@@ -8,7 +8,8 @@
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 
-MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath) {
+MaterialAssetData* ImportMaterialAssetDataFromConfig(const char* configPath) {
+	using namespace eastl::literals::string_literals;
 
 	struct TextureVarConfig {
 		eastl::string variableName;
@@ -16,6 +17,7 @@ MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath) {
 	};
 
 	struct MaterialConfig {
+		bool hasMaterialSection = false;
 		eastl::string vertexShaderPath;
 		eastl::string pixelShaderPath;
 		eastl::vector<TextureVarConfig> textureVariables;
@@ -27,6 +29,7 @@ MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath) {
 		#define MATCH(n) strcmp(name, n) == 0
 
 		if (SECTION("Material")) {
+			pConfig->hasMaterialSection = true;
 			if (MATCH("vsh"))
 				pConfig->vertexShaderPath = value;
 			else if (MATCH("psh"))
@@ -40,38 +43,44 @@ MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath) {
 		return 1;
 	};
 
+	// Load Config
 	MaterialConfig config;
-	if (ini_parse(configPath, handler, &config))
+
+	let iniPath = "Assets/"s + configPath;
+
+	if (ini_parse(iniPath.c_str(), handler, &config))
 		return nullptr;
 
+	if (!config.hasMaterialSection)
+		return nullptr;
+
+	// TODO: validate paths
+
+	// Compute Blob Size
 	uint32 sz = 
-		sizeof(MaterialDataHeader) + 
+		sizeof(MaterialAssetData) + 
 		config.textureVariables.size() * sizeof(uint32) + 
-		uint32(config.vertexShaderPath.size()) + 1 + 
-		uint32(config.pixelShaderPath.size()) + 1;
+		StrByteCount(config.vertexShaderPath) + 
+		StrByteCount(config.pixelShaderPath);
 	for(auto it : config.textureVariables)
-		sz += it.variableName.size() + it.texturePath.size() + 2;
+		sz +=
+			StrByteCount(it.variableName) + 
+			StrByteCount(it.texturePath);
 
-	let result = (MaterialDataHeader*) AllocAssetData(sz);
-	auto pStart = (uint8*) result;
-	auto pCurr = pStart + sizeof(MaterialDataHeader);
+	let result = AllocAssetData<MaterialAssetData>(sz);
+	AssetDataWriter writer(result, sizeof(MaterialAssetData));
 	
-	let WriteString = [&](const eastl::string& str) {
-		memcpy(pCurr, str.c_str(), str.size());
-		pCurr += str.size();
-		*pCurr = 0;
-		++pCurr;
-	};
-
-	result->VertexShaderNameOffset = uint32(pCurr - pStart);
-	WriteString(config.vertexShaderPath);
-	result->PixelShaderNameOffset = uint32(pCurr - pStart);
-	WriteString(config.pixelShaderPath);
-	result->TextureVariablesOffset = uint32(pCurr - pStart);
+	result->VertexShaderNameOffset = writer.GetOffset();
+	writer.WriteString(config.vertexShaderPath);
+	
+	result->PixelShaderNameOffset = writer.GetOffset();
+	writer.WriteString(config.pixelShaderPath);
+	
+	result->TextureVariablesOffset = writer.GetOffset();
 	result->TextureCount = (uint32) config.textureVariables.size();
 	for(auto it : config.textureVariables) {
-		WriteString(it.variableName);
-		WriteString(it.texturePath);
+		writer.WriteString(it.variableName);
+		writer.WriteString(it.texturePath);
 	}
 
 	return result;
@@ -79,9 +88,30 @@ MaterialDataHeader* LoadMaterialAssetDataFromConfig(const char* configPath) {
 
 Material::Material(ObjectID aID) : ObjectComponent(aID) {}
 
-bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const MaterialArgs& args) {
+bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const MaterialAssetData *pData, int Idx) {
 	if (IsLoaded())
 		return true;
+
+	CHECK_ASSERT(pData->TextureCount < 16);
+	struct TextureVariable {
+		const char* name;
+		ITexture* pTexture;
+	};
+	TextureVariable tv[15];
+	{
+		auto reader = pData->TextureVariables();
+		for (uint32 it = 0; it < pData->TextureCount; ++it) {
+			let name = reader.ReadString();
+			let path = reader.ReadString();
+			let texture = pGraphics->FindTexture(path);
+			if (texture == nullptr)
+				return false;
+
+			tv[it].name = name;
+			tv[it].pTexture = texture;
+		}
+	}
+
 
 	let nameStr = pGraphics->GetAssets()->GetName(pCaller->ID()).GetString();
 	let pDevice = pGraphics->GetDevice();
@@ -111,7 +141,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const Materia
 		SCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
 		SCI.EntryPoint = "main";
 		SCI.Desc.Name = vsDescName.c_str();
-		SCI.FilePath = args.vertexShaderFile;
+		SCI.FilePath = pData->VertexShaderPath();
 		pDevice->CreateShader(SCI, &pVS);
 		if (!pVS)
 			return false;
@@ -122,7 +152,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const Materia
 		SCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
 		SCI.EntryPoint = "main";
 		SCI.Desc.Name = psDescName.c_str();
-		SCI.FilePath = args.pixelShaderFile;
+		SCI.FilePath = pData->PixelShaderPath();
 		pDevice->CreateShader(SCI, &pPS);
 		if (!pPS)
 			return false;
@@ -135,14 +165,14 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const Materia
 
 	PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 
-	CHECK_ASSERT(args.numTextures < 16);
-
 	ShaderResourceVariableDesc Vars[16];
 	Vars[0] = { SHADER_TYPE_PIXEL, "g_ShadowMap", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };
-	for(int it=0; it<args.numTextures; ++it)
-		Vars[it+1] = { SHADER_TYPE_PIXEL, args.pTextureArgs[it].variableName, SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };
+
+	for(uint32 it=0; it<pData->TextureCount; ++it) {
+		Vars[it+1] = { SHADER_TYPE_PIXEL, tv[it].name, SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };
+	}
 	PSODesc.ResourceLayout.Variables = Vars;
-	PSODesc.ResourceLayout.NumVariables = args.numTextures + 1;
+	PSODesc.ResourceLayout.NumVariables = pData->TextureCount + 1;
 
 	// define static comparison sampler for shadow map
 	SamplerDesc ComparisonSampler;
@@ -154,10 +184,11 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const Materia
 
 	StaticSamplerDesc StaticSamplers[16];
 	StaticSamplers[0] = { SHADER_TYPE_PIXEL, "g_ShadowMap", ComparisonSampler };
-	for(int it=0; it<args.numTextures; ++it)
-		StaticSamplers[it+1] = { SHADER_TYPE_PIXEL, args.pTextureArgs[it].variableName, ComparisonSampler };
+	for(uint32 it=0; it<pData->TextureCount; ++it) {
+		StaticSamplers[it+1] = { SHADER_TYPE_PIXEL, tv[it].name, ComparisonSampler };
+	}
 	PSODesc.ResourceLayout.StaticSamplers = StaticSamplers;
-	PSODesc.ResourceLayout.NumStaticSamplers = args.numTextures + 1;
+	PSODesc.ResourceLayout.NumStaticSamplers = pData->TextureCount + 1;
 
 	pDevice->CreatePipelineState(Args, &pMaterialPipelineState);
 	if (!pMaterialPipelineState)
@@ -169,9 +200,10 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, Material* pCaller, const Materia
 	if (let pShadowMapVar = pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, "g_ShadowMap"))
 		pShadowMapVar->Set(pGraphics->GetShadowMapSRV());
 
-	for(int it=0; it<args.numTextures; ++it)
-		if (let pVar = pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, args.pTextureArgs[it].variableName))
-			pVar->Set(args.pTextureArgs[it].pTexture->GetSRV());
+	for(uint32 it=0; it<pData->TextureCount; ++it)
+		if (let pVar = pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, tv[it].name))
+			pVar->Set(tv[it].pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+			
 
 	return true;
 }
