@@ -25,7 +25,7 @@ struct MaterialAssetData : AssetDataHeader {
 	AssetDataReader TextureVariables() const { return AssetDataReader(this, TextureVariablesOffset); }
 };
 
-MaterialAssetData* ImportMaterialAssetDataFromConfig(const char* configPath);
+MaterialAssetData* ImportMaterialAssetDataFromSource(const char* configPath);
 
 class MaterialPass {
 private:

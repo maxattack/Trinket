@@ -12,7 +12,7 @@ const LayoutElement MeshVertexLayoutElems[4]{
 };
 
 
-MeshAssetData* ImportMeshAssetDataFromConfig(const char* configPath) {
+MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 	// LOL TODO
 	return nullptr;
 }

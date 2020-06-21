@@ -285,7 +285,7 @@ Mesh* Graphics::AddMesh(ObjectID id) {
 	return result;
 }
 
-bool Graphics::AddRenderMesh(ObjectID id, const RenderMeshData& data) {
+bool Graphics::AddMeshRenderer(ObjectID id, const RenderMeshData& data) {
 
 	// check refs
 	if (!pScene->IsValid(id))

@@ -33,6 +33,7 @@ struct MeshComponentHandle {
 };
 
 struct RenderMeshData {
+	// TODO: multi-material meshes?
 	Mesh* pMesh;
 	Material* pMaterial;
 	bool castsShadow;
@@ -72,25 +73,22 @@ public:
 
 	void SetLightDirection(vec3 direction) { lightDirection = glm::normalize(direction); }
 
+	bool HasMaterial(ObjectID id) { return materials.Contains(id); }
 	Material* LoadMaterial(ObjectID id, const MaterialAssetData* pData);
+	Material* GetMaterial(ObjectID id) { return DerefPP(materials.TryGetComponent<1>(id)); }
 	Material* FindMaterial(Name path) { return GetMaterial(pAssets->FindAsset(path)); }
-	Material* GetMaterial(ObjectID id) { return DerefPP(materials.TryGetComponent<C_MATERIAL_ASSET>(id)); }
 
+	bool HasTexture(ObjectID id) { return textures.Contains(id); }
 	ITexture* LoadTexture(ObjectID id, const TextureAssetData* pData);
+	ITexture* GetTexture(ObjectID id) { let pRef = textures.TryGetComponent<1>(id); return pRef ? *pRef : nullptr; }
 	ITexture* FindTexture(Name path) { return GetTexture(pAssets->FindAsset(path)); }
-	ITexture* GetTexture(ObjectID id) { 
-		if (id.IsNil()) 
-			return nullptr; 
-		let pRef = textures.TryGetComponent<1>(id); 
-		return pRef ? *pRef : nullptr; 
-	}
 
 	Mesh* AddMesh(ObjectID id);
-	Mesh* GetMesh(ObjectID id) { return DerefPP(meshes.TryGetComponent<C_MESH_ASSET>(id)); }
+	Mesh* GetMesh(ObjectID id) { return DerefPP(meshes.TryGetComponent<1>(id)); }
+	Mesh* FindMesh(Name path) { return GetMesh(pAssets->FindAsset(path)); }
 
-	bool AddRenderMesh(ObjectID id, const RenderMeshData& Data);
-	const RenderMeshData* GetRenderMeshFor(ObjectID id) const { return meshRenderers.TryGetComponent<C_RENDER_MESH>(id); }
-	//bool TryReleaseRenderMeshFor(ObjectID id);
+	bool AddMeshRenderer(ObjectID id, const RenderMeshData& Data);
+	const RenderMeshData* GetMeshRenderer(ObjectID id) const { return meshRenderers.TryGetComponent<1>(id); }
 
 	void DrawDebugLine(const vec4& color, const vec3& start, const vec3& end);
 
@@ -107,11 +105,6 @@ private:
 	SkelRegistry* pSkel;
 	AssetDatabase* pAssets;
 	Scene* pScene;
-
-	enum MeshAssetDataComponents { C_HANDLE, C_MESH_ASSET=1 };
-	enum MaterialAssetDataComponents { C_MATERIAL_ASSET=1 };
-	enum TextureAssetDataComponents { C_TEXTURE_ASSET=1 };
-	enum RenderMeshComponents { C_RENDER_MESH=1 };
 
 	ObjectPool<StrongRef<Mesh>> meshes;
 	ObjectPool<RefCntAutoPtr<ITexture>> textures;

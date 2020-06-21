@@ -61,7 +61,7 @@ void AssetDatabase::TryRename(ObjectID id, Name name) {
 //	return pName ? "Assets/" + pName->GetString() + ".ini" : "";
 //}
 
-void AssetDatabase::RegisterAssetData(ObjectID id, AssetDataHeader* pData) {
+void AssetDatabase::CacheAssetData(ObjectID id, AssetDataHeader* pData) {
 	data.TryAppendObject(id, pData);
 }
 

@@ -12,33 +12,6 @@
 int main(int argc, char** argv) {
     using namespace std;
 
-	/*
-
-	if (let mat = ImportMaterialAssetDataFromConfig("checkerboard_m.ini")) {
-		cout << "VSH: " << mat->VertexShaderPath() << endl;
-		cout << "PSH: " << mat->PixelShaderPath() << endl;
-		let N = mat->TextureCount;
-		auto reader = mat->TextureVariables();
-		for(uint32 it=0; it<N; ++it) {
-			let name = reader.ReadString();
-			let path = reader.ReadString();
-			cout << "Variable: " << name << " = " << path << endl;
-		}
-		FreeAssetData(mat);
-	} else {
-		cout << "No Dice" << endl;
-	}
-
-	if (let checkerboardData = ImportTextureAssetDataFromConfig("checkerboard_t.ini")) {
-		cout << "Width = " << checkerboardData->TextureWidth << endl;
-		cout << "Height = " << checkerboardData->TextureHeight << endl;
-		cout << "Size = " << checkerboardData->ByteCount << endl;
-		FreeAssetData(checkerboardData);
-	} else {
-		cout << "No Dice" << endl;
-	}
-	getchar();*/
-
 	// init sdl
 	srand(clock());
 	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_GAMECONTROLLER) < 0) {

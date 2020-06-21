@@ -17,13 +17,12 @@ inline static ScriptVM* GetVM(lua_State* lua) {
 
 #define SCRIPT_PREAMBLE              \
 	let vm = GetVM(lua);             \
-	World& world = *vm->GetWorld();  
+	World& w = *vm->GetWorld();  
 
 #define SCENE_OBJ_METHOD_PREAMBLE                          \
-	let vm = GetVM(lua);                                   \
-	World& world = *vm->GetWorld();                        \
+	SCRIPT_PREAMBLE                                        \
 	let obj = check_obj(lua, ObjectTag::SCENE_OBJECT, 1);  \
-	let hierarchy = world.scene.GetSublevelHierarchyFor(obj.id);
+	let hierarchy = w.scene.GetSublevelHierarchyFor(obj.id);
 
 static ObjectHandle check_obj(lua_State* lua, ObjectTag tag, int narg) {
 	ObjectHandle obj (lua_touserdata(lua, narg));
@@ -105,20 +104,20 @@ static int l_log(lua_State* lua) {
 
 static int l_is_valid(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	lua_pushboolean(lua, obj.id.IsFingerprinted() ? world.db.IsValid(obj.id) : world.scene.IsValid(obj.id));
+	lua_pushboolean(lua, obj.id.IsFingerprinted() ? w.db.IsValid(obj.id) : w.scene.IsValid(obj.id));
 	return 1;
 }
 
 static int l_object_count(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushinteger(lua, world.scene.GetSceneObjectCount());
+	lua_pushinteger(lua, w.scene.GetSceneObjectCount());
 	return 1;
 }
 
 static int l_create_object(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
-	let result = world.scene.CreateObject(name);
+	let result = w.scene.CreateObject(name);
 	
 	ObjectHandle parent;
 	if (lua_gettop(lua) > 1) {
@@ -129,11 +128,11 @@ static int l_create_object(lua_State* lua) {
 	}
 
 	if (parent.IsSceneObject())
-		world.scene.GetSublevelHierarchyFor(parent.id)->TryAdd(result, parent.id);
+		w.scene.GetSublevelHierarchyFor(parent.id)->TryAdd(result, parent.id);
 	else if (parent.IsSublevel())
-		world.scene.GetHierarchy(parent.id)->TryAdd(result);
+		w.scene.GetHierarchy(parent.id)->TryAdd(result);
 	else
-		world.scene.GetHierarchyByIndex(0)->TryAdd(result);
+		w.scene.GetHierarchyByIndex(0)->TryAdd(result);
 	
 	lua_pushobj(lua, ObjectTag::SCENE_OBJECT, result);
 	return 1;
@@ -142,24 +141,24 @@ static int l_create_object(lua_State* lua) {
 static int l_create_sublevel(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
-	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT, world.scene.CreateSublevel(name));
+	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT, w.scene.CreateSublevel(name));
 	return 1;
 
 }
 
 static int l_default_sublevel(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT,  world.scene.GetSublevelByIndex(0));
+	lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT,  w.scene.GetSublevelByIndex(0));
 	return 1;
 }
 
 static int l_find_object(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
-	let result = world.scene.FindObject(name);
-	if (world.scene.IsSceneObject(result))
+	let result = w.scene.FindObject(name);
+	if (w.scene.IsSceneObject(result))
 		lua_pushobj(lua, ObjectTag::SCENE_OBJECT, result);
-	else if (world.scene.IsSublevel(result))
+	else if (w.scene.IsSublevel(result))
 		lua_pushobj(lua, ObjectTag::SUBLEVEL_OBJECT, result);
 	else
 		lua_pushlightuserdata(lua, nullptr);
@@ -169,10 +168,10 @@ static int l_find_object(lua_State* lua) {
 static int l_object_at(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let idx = static_cast<int32>(luaL_checkinteger(lua, 1));
-	let n = world.scene.GetSceneObjectCount();
+	let n = w.scene.GetSceneObjectCount();
 	if (idx < 1 || idx > n)
 		return luaL_argerror(lua, 1, "Index out of Range");
-	lua_pushobj(lua, ObjectTag::SCENE_OBJECT, world.scene.GetSceneObjectByIndex(idx - 1));
+	lua_pushobj(lua, ObjectTag::SCENE_OBJECT, w.scene.GetSceneObjectByIndex(idx - 1));
 	return 1;
 }
 
@@ -213,14 +212,21 @@ static int l_set_rotation(lua_State* lua) {
 	return 0;
 }
 
-static int l_create_material(lua_State* lua) {
+static int l_load_material(lua_State* lua) {
 	using namespace eastl::literals::string_literals;
 	SCRIPT_PREAMBLE;
-	let name = luaL_checkstring(lua, 1);
+	let sourcePath = luaL_checkstring(lua, 1);
 
-	// load the material data
-	let materialConfig = name + ".ini"s;
-	let pAsset = ImportMaterialAssetDataFromConfig(materialConfig.c_str());
+	// material already loaded?
+	let existingID = w.db.FindAsset(sourcePath);
+	let alreadyLoaded = !existingID.IsNil() && w.gfx.HasMaterial(existingID);
+	if (alreadyLoaded) {
+		lua_pushobj(lua, ObjectTag::MATERIAL_ASSET, existingID);
+		return 1;
+	}
+
+	// import material asset
+	let pAsset = ImportMaterialAssetDataFromSource(sourcePath);
 	if (!pAsset) {
 		lua_pushobj(lua, ObjectTag::UNDEFINED, OBJECT_NIL);
 		return 1;
@@ -230,26 +236,26 @@ static int l_create_material(lua_State* lua) {
 	// ensure all our textures are loaded
 	auto reader = pAsset->TextureVariables();
 	for(uint32 it=0; it<pAsset->TextureCount; ++it) {
-		reader.ReadString(); // skip var name
-		let path = reader.ReadString();
-		let tid = world.db.FindAsset(path);
+		let tpath = (reader.ReadString(), reader.ReadString()); // skip var name
+		let tid = w.db.FindAsset(tpath);
 		if (tid.IsNil()) {
-			let pTexData = ImportTextureAssetDataFromConfig(path);
+			let pTexData = ImportTextureAssetDataFromSource(tpath);
 			if (!pTexData) {
 				lua_pushobj(lua, ObjectTag::UNDEFINED, OBJECT_NIL);
 				return 1;
 			}
-			let tid = world.db.CreateObject(path);
-			world.gfx.LoadTexture(tid, pTexData);
+			let tid = w.db.CreateObject(tpath);
+			w.gfx.LoadTexture(tid, pTexData);
 			FreeAssetData(pTexData);
 		}
 	}
 
 	// create the material
-	let id = world.db.CreateObject(name);
-	let material = world.gfx.LoadMaterial(id, pAsset);
+	let id = existingID.IsNil() ? w.db.CreateObject(sourcePath) : existingID;
+	let material = w.gfx.LoadMaterial(id, pAsset);
 	if (!material) {
-		world.db.Release(id);
+		if (existingID.IsNil())
+			w.db.Release(id);
 		lua_pushobj(lua, ObjectTag::UNDEFINED, OBJECT_NIL);
 		return 1;
 	}
@@ -269,8 +275,8 @@ static int l_create_cube_mesh(lua_State* lua) {
 		pVertices[it].color = vec4(glm::rgbColor(vec3(hue, 1.f, 1.f)), 1.f);
 	}
 	
-	let id = world.db.CreateObject(name);
-	world.gfx.AddMesh(id)->TryLoad(&world.gfx, false, meshData);
+	let id = w.db.CreateObject(name);
+	w.gfx.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
 	FreeAssetData(meshData);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
@@ -281,8 +287,8 @@ static int l_create_plane_mesh(lua_State* lua) {
 	let name = luaL_checkstring(lua, 1);
 	let extent = (float) luaL_checknumber(lua, 2);
 	let meshData = CreatePlaneMeshAssetData(extent);
-	let id = world.db.CreateObject(name);
-	world.gfx.AddMesh(id)->TryLoad(&world.gfx, false, meshData);
+	let id = w.db.CreateObject(name);
+	w.gfx.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
 	FreeAssetData(meshData);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
@@ -293,23 +299,23 @@ static int l_attach_rendermesh_to(lua_State* lua) {
 	let mesh = check_obj(lua, ObjectTag::MESH_ASSET, 2);
 	let material = check_obj(lua, ObjectTag::MATERIAL_ASSET, 3);
 	let shadow = lua_check_boolean_opt(lua, 4, true);
-	let pMesh = world.gfx.GetMesh(mesh.id);
-	let pMaterial = world.gfx.GetMaterial(material.id);
+	let pMesh = w.gfx.GetMesh(mesh.id);
+	let pMaterial = w.gfx.GetMaterial(material.id);
 	RenderMeshData rmd { pMesh, pMaterial, shadow };	
-	let result = world.gfx.AddRenderMesh(obj.id, rmd);
+	let result = w.gfx.AddMeshRenderer(obj.id, rmd);
 	lua_pushboolean(lua, result);
 	return 1;
 }
 
 static int l_add_ground_plane(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	world.phys.TryAddGroundPlane();
+	w.phys.TryAddGroundPlane();
 	return 0;
 }
 
 static int l_attach_rigidbody_to(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
-	let result = world.phys.TryAttachRigidbodyTo(obj.id);
+	let result = w.phys.TryAttachRigidbodyTo(obj.id);
 	lua_pushboolean(lua, result);
 	return 1;
 }
@@ -318,14 +324,14 @@ static int l_attach_boxcollider_to(lua_State* lua) {
 	SCENE_OBJ_METHOD_PREAMBLE;
 	let extent = lua_checkfloat(lua, 2);
 	let density = lua_checkfloat(lua, 3);
-	let result = world.phys.TryAttachBoxTo(obj.id, extent, density);
+	let result = w.phys.TryAttachBoxTo(obj.id, extent, density);
 	lua_pushboolean(lua, result);
 	return 1;
 }
 
 static int l_get_pov_position(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	let result = world.gfx.GetPOV().pose.position;
+	let result = w.gfx.GetPOV().pose.position;
 	lua_pushvec3(lua, result);
 	return 3;
 }
@@ -333,71 +339,71 @@ static int l_get_pov_position(lua_State* lua) {
 static int l_set_pov_position(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let pos =lua_check_vec3(lua, 1);
-	world.gfx.SetEyePosition(pos);
+	w.gfx.SetEyePosition(pos);
 	return 0;
 }
 
 int l_translate_pov_local(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let offset = lua_check_vec3(lua, 1);
-	let& pose = world.gfx.GetPOV().pose;
-	world.gfx.SetEyePosition(pose.position + pose.rotation * offset);
+	let& pose = w.gfx.GetPOV().pose;
+	w.gfx.SetEyePosition(pose.position + pose.rotation * offset);
 	return 0;
 }
 
 static int l_set_pov_rotation(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let rot = lua_check_euler(lua, 1);
-	world.gfx.SetEyeRotation(rot);
+	w.gfx.SetEyeRotation(rot);
 	return 0;
 }
 
 static int l_set_light_direction(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let dir = glm::normalize(lua_check_vec3(lua, 1));
-	world.gfx.SetLightDirection(dir);
+	w.gfx.SetLightDirection(dir);
 	return 0;
 }
 
 static int l_get_left_stick(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushvec2(lua, world.input.GetStickL());
+	lua_pushvec2(lua, w.input.GetStickL());
 	return 2;
 }
 
 static int l_get_right_stick(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushvec2(lua, world.input.GetStickR());
+	lua_pushvec2(lua, w.input.GetStickR());
 	return 2;
 }
 
 static int l_get_left_trigger(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushnumber(lua, world.input.GetTriggerValueL());
+	lua_pushnumber(lua, w.input.GetTriggerValueL());
 	return 1;
 }
 
 static int l_get_right_trigger(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushnumber(lua, world.input.GetTriggerValueR());
+	lua_pushnumber(lua, w.input.GetTriggerValueR());
 	return 1;
 }
 
 static int l_get_game_time(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushnumber(lua, world.input.GetTime());
+	lua_pushnumber(lua, w.input.GetTime());
 	return 1;
 }
 
 static int l_get_raw_time(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	lua_pushnumber(lua, float(world.input.GetTicks()));
+	lua_pushnumber(lua, float(w.input.GetTicks()));
 	return 1;
 }
 
 static int l_set_time_dilation(lua_State* lua) {
 	SCRIPT_PREAMBLE;
-	world.input.SetTimeDilation(lua_checkfloat(lua, 1));
+	w.input.SetTimeDilation(lua_checkfloat(lua, 1));
 	return 0;
 }
 
@@ -438,7 +444,7 @@ static const struct luaL_Reg lib_trinket[] = {
 	{ "set_light_direction",  l_set_light_direction  },
 
 	// material functions
-	{ "create_material",      l_create_material      },
+	{ "load_material",        l_load_material        },
 
 	// mesh functions
 	{ "create_cube_mesh",     l_create_cube_mesh     },
@@ -476,7 +482,7 @@ static int l_wireframe_set_color(lua_State* lua) {
 static int l_wireframe_line_to(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let nextPos = lua_check_vec3(lua, 1);
-	world.gfx.DrawDebugLine(vm->wireframeColor, vm->wireframePosition, nextPos);
+	w.gfx.DrawDebugLine(vm->wireframeColor, vm->wireframePosition, nextPos);
 	vm->wireframePosition = nextPos;
 	return 0;
 }
@@ -495,22 +501,22 @@ static int l_wireframe_draw_cube(lua_State* lua) {
 	let col = vm->wireframeColor;
 
 	// draw bottom
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(sz, -sz, -sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(-sz, sz, -sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(sz, -sz, -sz), pos + rot * vec3(sz, sz, -sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, sz, -sz), pos + rot * vec3(sz, sz, -sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(sz, -sz, -sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(-sz, sz, -sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(sz, -sz, -sz), pos + rot * vec3(sz, sz, -sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, sz, -sz), pos + rot * vec3(sz, sz, -sz));
 
 	// draw top
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, sz), pos + rot * vec3(sz, -sz, sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, sz), pos + rot * vec3(-sz, sz, sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(sz, -sz, sz), pos + rot * vec3(sz, sz, sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, sz, sz), pos + rot * vec3(sz, sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, sz), pos + rot * vec3(sz, -sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, sz), pos + rot * vec3(-sz, sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(sz, -sz, sz), pos + rot * vec3(sz, sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, sz, sz), pos + rot * vec3(sz, sz, sz));
 
 	// draw connections
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(-sz, -sz, sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(sz, -sz, -sz), pos + rot * vec3(sz, -sz, sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, sz, -sz), pos + rot * vec3(-sz, sz, sz));
-	world.gfx.DrawDebugLine(col, pos + rot * vec3(sz, sz, -sz), pos + rot * vec3(sz, sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, -sz, -sz), pos + rot * vec3(-sz, -sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(sz, -sz, -sz), pos + rot * vec3(sz, -sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(-sz, sz, -sz), pos + rot * vec3(-sz, sz, sz));
+	w.gfx.DrawDebugLine(col, pos + rot * vec3(sz, sz, -sz), pos + rot * vec3(sz, sz, sz));
 
 	return 0;
 }

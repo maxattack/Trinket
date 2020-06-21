@@ -8,7 +8,7 @@
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 
-MaterialAssetData* ImportMaterialAssetDataFromConfig(const char* configPath) {
+MaterialAssetData* ImportMaterialAssetDataFromSource(const char* configPath) {
 	using namespace eastl::literals::string_literals;
 
 	struct TextureVarConfig {

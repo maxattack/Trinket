@@ -22,5 +22,5 @@ struct TextureAssetData : AssetDataHeader {
 	const uint8* Data() const { return Peek<uint8>(this, sizeof(TextureAssetData)); }
 };
 
-TextureAssetData* ImportTextureAssetDataFromConfig(const char* configPath);
+TextureAssetData* ImportTextureAssetDataFromSource(const char* configPath);
 RefCntAutoPtr<ITexture> LoadTextureHandleFromAsset(Display* pDisplay, const TextureAssetData* pData);

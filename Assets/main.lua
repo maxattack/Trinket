@@ -3,8 +3,8 @@ trinket.log "Hello..."
 
 -- create some assets
 
-local mat_checkboard = trinket.create_material "checkerboard_m"
-local mat_surface = trinket.create_material "surface_m"
+local mat_checkboard = trinket.load_material "checkerboard.mat"
+local mat_surface = trinket.load_material "surface.mat"
 local mesh_plane = trinket.create_plane_mesh("plane", 4)
 local mesh_box = trinket.create_cube_mesh("cube", 0.25)
 

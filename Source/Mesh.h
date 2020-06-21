@@ -44,10 +44,9 @@ struct MeshAssetData : AssetDataHeader {
 
 };
 
-MeshAssetData* ImportMeshAssetDataFromConfig(const char* configPath);
+MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath);
 MeshAssetData* CreateCubeMeshAssetData(float extent);
 MeshAssetData* CreatePlaneMeshAssetData(float extent);
-
 
 class SubMesh {
 private:

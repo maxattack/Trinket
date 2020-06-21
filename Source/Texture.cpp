@@ -6,7 +6,7 @@
 #include <stb_image.h>
 #include <ini.h>
 
-TextureAssetData* ImportTextureAssetDataFromConfig(const char* configPath) {
+TextureAssetData* ImportTextureAssetDataFromSource(const char* configPath) {
 	using namespace eastl::literals::string_literals;
 
 	struct TextureConfig {

@@ -11,51 +11,6 @@
 class Scene;
 
 //------------------------------------------------------------------------------------------
-// Weak-ptr wrapper to check for use-after-free
-
-template<typename T>
-class SceneRef {
-private:
-	T* ptr;
-	#if TRINKET_CHECKED
-	ObjectID id;
-	#endif
-
-public:
-	SceneRef() noexcept = default;
-	SceneRef(const SceneRef<T>&) noexcept = default;
-	SceneRef(SceneRef<T>&&) noexcept = default;
-	SceneRef<T>& operator=(const SceneRef<T>&) noexcept = default;
-
-	SceneRef(ForceInit) noexcept
-		: ptr(nullptr) 
-	{
-		#if TRINKET_CHECKED	
-		id = OBJECT_NIL;
-		#endif
-	}
-
-	SceneRef(T* aPtr) noexcept
-		: ptr(aPtr)
-	{
-		#if TRINKET_CHECKED	
-		id = ptr->ID();
-		CHECK_ASSERT(!id.IsFingerprinted());
-		#endif
-	}
-
-	inline T* GetComponent(const Scene* pScene);
-	inline T* GetComponent(const Scene* pScene) const;
-
-	void Reset() {
-		ptr = nullptr;
-		#if TRINKET_CHECKED	
-		id = OBJECT_NIL;
-		#endif
-	}
-};
-
-//------------------------------------------------------------------------------------------
 // Interface for listening to world events
 
 class ISceneListener {
@@ -78,7 +33,7 @@ private:
 
 	ObjectMgr<Name> mgr;
 	ObjectPool<StrongRef<Hierarchy>> sublevels;
-	ObjectPool<SceneRef<Hierarchy>> sceneObjects;
+	ObjectPool<Hierarchy*> sceneObjects;
 	ListenerList<ISceneListener> listeners;
 
 public:
@@ -110,8 +65,8 @@ public:
 	Hierarchy* GetHierarchy(ObjectID id) { return DerefPP(sublevels.TryGetComponent<C_HIERARCHY>(id)); }
 	Hierarchy* GetHierarchyByIndex(int32 idx) { return *sublevels.GetComponentByIndex<C_HIERARCHY>(idx); }
 
-	ObjectID GetSublevel(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->GetComponent(this)->ID() : OBJECT_NIL; }
-	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? result->GetComponent(this) : nullptr; }
+	ObjectID GetSublevel(ObjectID id) { let result = sceneObjects.TryGetComponent<C_SUBLEVEL>(id); return result ? (*result)->ID() : OBJECT_NIL; }
+	Hierarchy* GetSublevelHierarchyFor(ObjectID id) { return DerefPP(sceneObjects.TryGetComponent<C_SUBLEVEL>(id)); }
 
 	void SanityCheck();
 
@@ -120,18 +75,3 @@ private:
 	void Hierarchy_DidAddObject(Hierarchy* hierarchy, ObjectID id) override;
 	void Hierarchy_WillRemoveObject(Hierarchy* hierarchy, ObjectID id) override;
 };
-
-//------------------------------------------------------------------------------------------
-// SceneRef Impl
-
-template<typename T>
-inline T* SceneRef<T>::GetComponent(const Scene* pScene) {
-	CHECK_ASSERT(ptr == nullptr || pScene->IsValid(id));
-	return ptr;
-}
-
-template<typename T>
-inline T* SceneRef<T>::GetComponent(const Scene* pScene) const {
-	CHECK_ASSERT(ptr == nullptr || pScene->IsValid(id));
-	return ptr;
-}
