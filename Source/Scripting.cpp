@@ -235,7 +235,7 @@ static int l_load_material(lua_State* lua) {
 
 	// ensure all our textures are loaded
 	auto reader = pAsset->TextureVariables();
-	for(uint32 it=0; it<pAsset->TextureCount; ++it) {
+	for(auto it=0u; it<pAsset->TextureCount; ++it) {
 		let tpath = (reader.ReadString(), reader.ReadString()); // skip var name
 		let tid = w.db.FindAsset(tpath);
 		if (tid.IsNil()) {
@@ -270,7 +270,7 @@ static int l_create_cube_mesh(lua_State* lua) {
 	let meshData = CreateCubeMeshAssetData(extent);
 	let pVertices = meshData->VertexData(0);
 	let nverts = meshData->SubmeshData(0)->VertexCount;
-	for(uint32 it=0; it<nverts; ++it)
+	for(auto it=0u; it<nverts; ++it)
 		pVertices[it].color = 0xff00ffff; // ABGR
 	
 	let id = w.db.CreateObject(name);

@@ -168,7 +168,7 @@ void MeshAssetData::FlipNormals() {
 	for (uint32 sub = 0; sub < SubmeshCount; ++sub) {
 		let pSubmesh = SubmeshData(sub);
 		let pVertices = VertexData(sub);
-		for(uint32 it=0; it<pSubmesh->VertexCount; ++it)
+		for(auto it=0u; it<pSubmesh->VertexCount; ++it)
 			pVertices[it].normal = -pVertices[it].normal;
 	}
 }
@@ -177,7 +177,7 @@ void MeshAssetData::SetColor(vec4 c) {
 	for (uint32 sub = 0; sub < SubmeshCount; ++sub) {
 		let pSubmesh = SubmeshData(sub);
 		let pVertices = VertexData(sub);
-		for (uint32 it = 0; it < pSubmesh->VertexCount; ++it)
+		for (auto it = 0u; it < pSubmesh->VertexCount; ++it)
 			pVertices[it].color;
 	}
 }

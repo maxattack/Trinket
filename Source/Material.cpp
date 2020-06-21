@@ -100,7 +100,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const M
 	TextureVariable tv[15];
 	{
 		auto reader = pData->TextureVariables();
-		for (uint32 it = 0; it < pData->TextureCount; ++it) {
+		for (auto it = 0u; it < pData->TextureCount; ++it) {
 			let name = reader.ReadString();
 			let path = reader.ReadString();
 			let texture = pGraphics->FindTexture(path);
@@ -168,7 +168,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const M
 	ShaderResourceVariableDesc Vars[16];
 	Vars[0] = { SHADER_TYPE_PIXEL, "g_ShadowMap", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };
 
-	for(uint32 it=0; it<pData->TextureCount; ++it) {
+	for(auto it=0u; it<pData->TextureCount; ++it) {
 		Vars[it+1] = { SHADER_TYPE_PIXEL, tv[it].name, SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE };
 	}
 	PSODesc.ResourceLayout.Variables = Vars;
@@ -184,7 +184,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const M
 
 	StaticSamplerDesc StaticSamplers[16];
 	StaticSamplers[0] = { SHADER_TYPE_PIXEL, "g_ShadowMap", ComparisonSampler };
-	for(uint32 it=0; it<pData->TextureCount; ++it) {
+	for(auto it=0u; it<pData->TextureCount; ++it) {
 		StaticSamplers[it+1] = { SHADER_TYPE_PIXEL, tv[it].name, ComparisonSampler };
 	}
 	PSODesc.ResourceLayout.StaticSamplers = StaticSamplers;
@@ -200,7 +200,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const M
 	if (let pShadowMapVar = pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, "g_ShadowMap"))
 		pShadowMapVar->Set(pGraphics->GetShadowMapSRV());
 
-	for(uint32 it=0; it<pData->TextureCount; ++it)
+	for(auto it=0u; it<pData->TextureCount; ++it)
 		if (let pVar = pMaterialResourceBinding->GetVariableByName(SHADER_TYPE_PIXEL, tv[it].name))
 			pVar->Set(tv[it].pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
 			

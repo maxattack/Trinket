@@ -346,7 +346,7 @@ void Graphics::Draw() {
 	// get transforms
 	if (matrices.size() != items.size())
 		matrices.resize(items.size());
-	for(uint32 it=0; it<items.size(); ++it)
+	for(auto it=0u; it<items.size(); ++it)
 	{
 		let& item = items[it];
 		let pHierarchy = pScene->GetSublevelHierarchyFor(item.id);
@@ -399,7 +399,7 @@ void Graphics::Draw() {
 		pContext->ClearDepthStencil(pShadowMapDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 		pContext->SetPipelineState(pShadowPipelineState);
 		pContext->CommitShaderResources(pShadowResourceBinding, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-		for(uint32 it=0; it<items.size(); ++it) {
+		for(auto it=0u; it<items.size(); ++it) {
 			let& item = items[it];
 			if (item.shadows) {
 				{
