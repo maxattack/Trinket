@@ -8,7 +8,7 @@ const LayoutElement MeshVertexLayoutElems[4]{
 	LayoutElement{ 0, 0, 3, VT_FLOAT32, false },
 	LayoutElement{ 1, 0, 3, VT_FLOAT32, false },
 	LayoutElement{ 2, 0, 2, VT_FLOAT32, false },
-	LayoutElement{ 3, 0, 4, VT_FLOAT32, false },
+	LayoutElement{ 3, 0, 4, VT_UINT8,   true }
 };
 
 
@@ -103,7 +103,7 @@ MeshAssetData* CreateCubeMeshAssetData(float extent) {
 		p.position = extent * verts[it].pos;
 		p.uv = verts[it].uv;
 		p.normal = verts[it].normal;
-		p.color = vec4(1, 1, 1, 1);
+		p.color = 0xffffffff;
 		writer.WriteValue(p);
 	}
 
@@ -131,10 +131,10 @@ MeshAssetData* CreatePlaneMeshAssetData(float extent) {
 	pSubmesh->VertexOffset = writer.GetOffset();
 
 	MeshVertex vertices[4] {
-		{ vec3(-extent, -extent, 0), vec3(0, 0, 1), vec2(0, 0), vec4(1, 1, 1, 1) },
-		{ vec3( extent, -extent, 0), vec3(0, 0, 1), vec2(1, 0), vec4(1, 1, 1, 1) },
-		{ vec3( extent,  extent, 0), vec3(0, 0, 1), vec2(1, 1), vec4(1, 1, 1, 1) },
-		{ vec3(-extent,  extent, 0), vec3(0, 0, 1), vec2(0, 1), vec4(1, 1, 1, 1) }
+		{ vec3(-extent, -extent, 0), vec3(0, 0, 1), vec2(0, 0), 0xffffffff },
+		{ vec3( extent, -extent, 0), vec3(0, 0, 1), vec2(1, 0), 0xffffffff },
+		{ vec3( extent,  extent, 0), vec3(0, 0, 1), vec2(1, 1), 0xffffffff },
+		{ vec3(-extent,  extent, 0), vec3(0, 0, 1), vec2(0, 1), 0xffffffff },
 	};
 	writer.WriteData(vertices, 4 * sizeof(MeshVertex));
 

@@ -11,7 +11,15 @@ struct MeshVertex {
 	vec3 position;
 	vec3 normal;
 	vec2 uv;
-	vec4 color; // encode as 8bpc instead?
+	union {
+		uint32 color;
+		struct {
+			uint8 r;
+			uint8 g;
+			uint8 b;
+			uint8 a;
+		};
+	};
 };
 
 extern const LayoutElement MeshVertexLayoutElems[4];

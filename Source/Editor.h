@@ -34,7 +34,8 @@ public:
 	~Editor();
 
 	void HandleEvent(const SDL_Event& Event);
-	void Update();
+	void BeginUpdate();
+	void EndUpdate();
 	void Draw();
 
 private:

@@ -29,7 +29,7 @@ void Editor::HandleEvent(const SDL_Event& Event) {
 	ImGui_ImplSDL2_ProcessEvent(&Event);
 }
 
-void Editor::Update() {
+void Editor::BeginUpdate() {
 	ImGui_ImplSDL2_NewFrame(pWorld->gfx.GetWindow());
 	auto& SCDesc = pWorld->gfx.GetSwapChain()->GetDesc();
 	impl.NewFrame(SCDesc.Width, SCDesc.Height, SCDesc.PreTransform);
@@ -37,6 +37,9 @@ void Editor::Update() {
 		ImGui::ShowDemoWindow(&showDemoWindow);
 	ShowOutliner();
 	ShowInspector();
+}
+
+void Editor::EndUpdate() {
 	impl.EndFrame();
 }
 

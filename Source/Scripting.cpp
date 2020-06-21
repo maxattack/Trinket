@@ -270,10 +270,8 @@ static int l_create_cube_mesh(lua_State* lua) {
 	let meshData = CreateCubeMeshAssetData(extent);
 	let pVertices = meshData->VertexData(0);
 	let nverts = meshData->SubmeshData(0)->VertexCount;
-	for(uint32 it=0; it<nverts; ++it) {
-		let hue = float(rand() % 360);
-		pVertices[it].color = vec4(glm::rgbColor(vec3(hue, 1.f, 1.f)), 1.f);
-	}
+	for(uint32 it=0; it<nverts; ++it)
+		pVertices[it].color = 0xff00ffff; // ABGR
 	
 	let id = w.db.CreateObject(name);
 	w.gfx.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
