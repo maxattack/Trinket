@@ -4,4 +4,5 @@
 #pragma once
 #include "Math.h"
 
-void Triangulate(uint32* outIndex, const vec3* points, int npoints);
+inline int GetTriangleCount(int loopLength) { return loopLength - 2; }
+bool Triangulate(uint32* outIndex, const vec3* points, int npoints);

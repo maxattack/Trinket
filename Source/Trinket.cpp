@@ -9,6 +9,8 @@
 #include "Scripting.h"
 #include "Editor.h"
 
+#include "Triangulate.h"
+
 #include <ofbx.h>
 #include <cstdio>
 #include <cstring>
@@ -382,14 +384,49 @@ int main(int argc, char** argv) {
 					mesh.edges.push_back(edge);
 			};
 
-			int idx=0;
+
+			// for triangulation
+			vec3 posBuffer[64];
+			uint32 idxBuffer[64];
+			let ToRealIndex = [](int idx) -> int { return idx >= 0 ? idx : ~idx; };
+
+			int idx = 0;
 			while(idx < nidx) {
+
+				// search to the end of the next loop
 				int loopLen = 1;
 				while(pidx[idx + loopLen - 1] > 0)
 					++loopLen;
-				for(int loopIndex=1; loopIndex<loopLen; ++loopIndex)
-					TryAddEdge(pidx[idx + loopIndex-1], pidx[idx + loopIndex]);
-				TryAddEdge(pidx[idx], pidx[idx + loopLen - 1]);
+
+				if (loopLen >= 3) {
+
+					// triangulate the face (ugh, ugh)
+					for(int loopIndex=0; loopIndex<loopLen; ++loopIndex)
+						posBuffer[loopIndex] = mesh.points[ToRealIndex(pidx[idx + loopIndex])];
+
+					if (!Triangulate(idxBuffer, posBuffer, loopLen)) {
+
+						let tricount = GetTriangleCount(loopLen);
+						for(int triIndex=0; triIndex < tricount; ++triIndex) {
+							let loopIdx1 = idx + idxBuffer[3 * triIndex + 0];
+							let loopIdx2 = idx + idxBuffer[3 * triIndex + 1];
+							let loopIdx3 = idx + idxBuffer[3 * triIndex + 2];
+							TryAddEdge(pidx[loopIdx1], pidx[loopIdx2]);
+							TryAddEdge(pidx[loopIdx2], pidx[loopIdx3]);
+							TryAddEdge(pidx[loopIdx3], pidx[loopIdx1]);
+						}
+
+						//for(int loopIndex=1; loopIndex<loopLen; ++loopIndex)
+						//	TryAddEdge(pidx[idx + loopIndex-1], pidx[idx + loopIndex]);
+						//TryAddEdge(pidx[idx], pidx[idx + loopLen - 1]);
+
+					}
+				
+					//for(int loopIndex=1; loopIndex<loopLen; ++loopIndex)
+					//	TryAddEdge(pidx[idx + loopIndex-1], pidx[idx + loopIndex]);
+					//TryAddEdge(pidx[idx], pidx[idx + loopLen - 1]);
+				}
+
 				idx += loopLen;
 			}
 
