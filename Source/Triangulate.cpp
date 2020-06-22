@@ -25,7 +25,7 @@ bool Contains(vec2 p1, vec2 p2, vec2 p3, vec2 p) {
 	return diff < epsilon && diff > -epsilon;
 }
 
-bool Convex(const vec2* p, int n) {
+bool IsConvex(const vec2* p, int n) {
 	// via thundergod bourke http://paulbourke.net/geometry/polygonmesh/
 	int flag = 0;
 	for (int i = 0; i < n; i++) {
@@ -69,7 +69,7 @@ void Triangulate(uint32* outIndex, const vec3* points, int npoints) {
 		polygon[it] = vec2(unrotate * (points[it] - fitPlane.center));
 	
 	// convex-case
-	if (Convex(polygon, npoints)) {
+	if (IsConvex(polygon, npoints)) {
 		for(int it=0; it<triangleCount; ++it) {
 			outIndex[3*it] = 0;
 			outIndex[3*it] = it + 1;
