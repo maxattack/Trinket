@@ -386,8 +386,8 @@ int main(int argc, char** argv) {
 
 
 			// for triangulation
-			vec3 posBuffer[64];
-			uint32 idxBuffer[64];
+			vec3 posBuffer[MAX_EDGE_LOOP_LENGTH];
+			uint32 idxBuffer[TRIANGULATE_RESULT_CAPACITY];
 			let ToRealIndex = [](int idx) -> int { return idx >= 0 ? idx : ~idx; };
 
 			int idx = 0;
@@ -404,27 +404,22 @@ int main(int argc, char** argv) {
 					for(int loopIndex=0; loopIndex<loopLen; ++loopIndex)
 						posBuffer[loopIndex] = mesh.points[ToRealIndex(pidx[idx + loopIndex])];
 
-					if (!Triangulate(idxBuffer, posBuffer, loopLen)) {
+					Triangulate(idxBuffer, posBuffer, loopLen);
 
-						let tricount = GetTriangleCount(loopLen);
-						for(int triIndex=0; triIndex < tricount; ++triIndex) {
-							let loopIdx1 = idx + idxBuffer[3 * triIndex + 0];
-							let loopIdx2 = idx + idxBuffer[3 * triIndex + 1];
-							let loopIdx3 = idx + idxBuffer[3 * triIndex + 2];
-							TryAddEdge(pidx[loopIdx1], pidx[loopIdx2]);
-							TryAddEdge(pidx[loopIdx2], pidx[loopIdx3]);
-							TryAddEdge(pidx[loopIdx3], pidx[loopIdx1]);
-						}
-
-						//for(int loopIndex=1; loopIndex<loopLen; ++loopIndex)
-						//	TryAddEdge(pidx[idx + loopIndex-1], pidx[idx + loopIndex]);
-						//TryAddEdge(pidx[idx], pidx[idx + loopLen - 1]);
-
+					let tricount = loopLen - 2;
+					for(int triIndex=0; triIndex < tricount; ++triIndex) {
+						let loopIdx1 = idx + idxBuffer[3 * triIndex + 0];
+						let loopIdx2 = idx + idxBuffer[3 * triIndex + 1];
+						let loopIdx3 = idx + idxBuffer[3 * triIndex + 2];
+						TryAddEdge(pidx[loopIdx1], pidx[loopIdx2]);
+						TryAddEdge(pidx[loopIdx2], pidx[loopIdx3]);
+						TryAddEdge(pidx[loopIdx3], pidx[loopIdx1]);
 					}
-				
+
 					//for(int loopIndex=1; loopIndex<loopLen; ++loopIndex)
 					//	TryAddEdge(pidx[idx + loopIndex-1], pidx[idx + loopIndex]);
 					//TryAddEdge(pidx[idx], pidx[idx + loopLen - 1]);
+
 				}
 
 				idx += loopLen;
