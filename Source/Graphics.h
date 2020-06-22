@@ -15,7 +15,7 @@
 #	define SHADOW_MAP_DEBUG 0
 #endif
 #ifndef DEBUG_LINE_CAPACITY
-#	define DEBUG_LINE_CAPACITY (4024 * 1024)
+#	define DEBUG_LINE_CAPACITY (1024 * 1024)
 #endif
 
 // TODO: Implement IAssetListener to detect releases
