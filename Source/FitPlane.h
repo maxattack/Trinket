@@ -9,4 +9,7 @@ struct fit_plane {
 	vec3 normal;
 };
 
-fit_plane FindFitPlane(vec3* pPoints, int npoints, vec3 guess);
+vec3 FindCenter(const vec3* points, int npoints);
+fit_plane FindFitPlane(const vec3* points, int npoints);
+fit_plane FindFitPlane(const vec3* points, int npoints, const vec3& guess);
+fit_plane FindFitPlane(const vec3* points, int npoints, const vec3& center, const vec3& guess);

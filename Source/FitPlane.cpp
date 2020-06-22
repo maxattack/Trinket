@@ -29,22 +29,34 @@ vec3 FindEigenVectorAssociatedWithLargestEigenValue(const mat3& mat, vec3 v) {
 	return v;
 }
 
-fit_plane FindFitPlane(vec3* pPoints, int npoints, vec3 guess) {
+vec3 FindCenter(const vec3* points, int npoints) {
+	vec3 sum(0.f, 0.f, 0.f);
+	for (auto it = 0; it < npoints; ++it)
+		sum += points[it];
+	return sum * (1.f / npoints);
+}
 
+fit_plane FindFitPlane(const vec3* points, int npoints) {
+	CHECK_ASSERT(npoints > 2);
+	let center = FindCenter(points, npoints);
+	let guess = glm::normalize( glm::cross(points[1] - points[0], points[2] - points[0]) );
+	return FindFitPlane(points, npoints, center, guess);
+}
+
+fit_plane FindFitPlane(const vec3* points, int npoints, const vec3& guess) {
+	let center = FindCenter(points, npoints);
+	return FindFitPlane(points, npoints, center, guess);
+}
+
+fit_plane FindFitPlane(const vec3* points, int npoints, const vec3& center, const vec3& guess) {
 	// finds a regression-plane normal using a least-squares method
 
-	vec3 sum (0.f, 0.f, 0.f);
-	for(auto it=0; it<npoints; ++it)
-		sum += pPoints[it];
-
-	let center = sum * (1.f / npoints);
-	
 	float sumXX = 0.0f, sumXY = 0.0f, sumXZ = 0.0f;
 	float sumYY = 0.0f, sumYZ = 0.0f;
 	float sumZZ = 0.0f;
 	
 	for (int it = 0; it < npoints; it++) {
-		let diff = pPoints[it] - center;
+		let diff = points[it] - center;
 		sumXX += diff.x * diff.x;
 		sumXY += diff.x * diff.y;
 		sumXZ += diff.x * diff.z;
@@ -61,6 +73,6 @@ fit_plane FindFitPlane(vec3* pPoints, int npoints, vec3 guess) {
 	
 	let mi = glm::inverse(m);
 	let normal = FindEigenVectorAssociatedWithLargestEigenValue(mi, guess);
-	
-	return fit_plane { center, normal };
+	let sign = glm::sign(glm::dot(normal, guess));
+	return fit_plane { center, sign * normal };
 }
