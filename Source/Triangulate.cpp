@@ -3,7 +3,6 @@
 
 #include "Triangulate.h"
 #include "FitPlane.h"
-#include <EASTL/vector.h>
 #include <glm/gtx/perpendicular.hpp>
 
 float Area2(vec2 p1, vec2 p2, vec2 p3) {
