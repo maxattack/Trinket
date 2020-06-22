@@ -99,7 +99,7 @@ void Triangulate(uint32* outIndex, const vec3* points, int npoints) {
 		let p2 = polygon[idx2];
 		let p3 = polygon[idx3];
 		for(int it=0; it<currLen-3; ++it) {
-			let idxn = (idx + 3) % currLen;
+			let idxn = (idx + 3 + it) % currLen;
 			let p = polygon[idxn];
 			if (Contains(p1, p2, p3, p))
 				return false;
