@@ -212,7 +212,7 @@ static int l_set_rotation(lua_State* lua) {
 	return 0;
 }
 
-static int l_load_material(lua_State* lua) {
+static int l_import_material(lua_State* lua) {
 	using namespace eastl::literals::string_literals;
 	SCRIPT_PREAMBLE;
 	let sourcePath = luaL_checkstring(lua, 1);
@@ -260,6 +260,35 @@ static int l_load_material(lua_State* lua) {
 		return 1;
 	}
 	lua_pushobj(lua, ObjectTag::MATERIAL_ASSET, id);
+	return 1;
+}
+
+static int l_import_mesh(lua_State* lua) {
+	using namespace eastl::literals::string_literals;
+	SCRIPT_PREAMBLE;
+	let sourcePath = luaL_checkstring(lua, 1);
+
+	// mesh already loaded?
+	let existingID = w.db.FindAsset(sourcePath);
+	let alreadyLoaded = !existingID.IsNil() && w.gfx.GetMesh(existingID) != nullptr;
+	if (alreadyLoaded) {
+		lua_pushobj(lua, ObjectTag::MESH_ASSET, existingID);
+		return 1;
+	}
+
+	// import mesh asset
+	let pAsset = ImportMeshAssetDataFromSource(sourcePath);
+	if (!pAsset) {
+		lua_pushobj(lua, ObjectTag::UNDEFINED, OBJECT_NIL);
+		return 1;
+	}
+	AssetDataRef raii(pAsset);
+
+	// TODO: default materials?
+	let id = existingID.IsNil() ? w.db.CreateObject(sourcePath) : existingID;
+	let mesh = w.gfx.AddMesh(id);
+	mesh->TryLoad(&w.gfx, false, pAsset);
+	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
 }
 
@@ -442,9 +471,10 @@ static const struct luaL_Reg lib_trinket[] = {
 	{ "set_light_direction",  l_set_light_direction  },
 
 	// material functions
-	{ "load_material",        l_load_material        },
+	{ "import_material",      l_import_material      },
 
 	// mesh functions
+	{ "import_mesh",          l_import_mesh          },
 	{ "create_cube_mesh",     l_create_cube_mesh     },
 	{ "create_plane_mesh",    l_create_plane_mesh    },
 	{ "attach_rendermesh_to", l_attach_rendermesh_to },

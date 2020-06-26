@@ -45,9 +45,7 @@ MaterialAssetData* ImportMaterialAssetDataFromSource(const char* configPath) {
 
 	// Load Config
 	MaterialConfig config;
-
 	let iniPath = "Assets/"s + configPath;
-
 	if (ini_parse(iniPath.c_str(), handler, &config))
 		return nullptr;
 

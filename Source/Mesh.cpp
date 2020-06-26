@@ -4,6 +4,16 @@
 #include "Mesh.h"
 #include "Graphics.h"
 
+#include <ini.h>
+#include <EASTL/string.h>
+
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
+#include <assimp/DefaultLogger.hpp>
+#include <assimp/LogStream.hpp>
+
 const LayoutElement MeshVertexLayoutElems[4]{
 	LayoutElement{ 0, 0, 3, VT_FLOAT32, false },
 	LayoutElement{ 1, 0, 3, VT_FLOAT32, false },
@@ -11,10 +21,125 @@ const LayoutElement MeshVertexLayoutElems[4]{
 	LayoutElement{ 3, 0, 4, VT_UINT8,   true }
 };
 
-
 MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
-	// LOL TODO
-	return nullptr;
+	using namespace eastl::literals::string_literals;
+	using namespace Assimp;
+
+	struct MeshConfig {
+		eastl::string path;
+		float x = 0.f;
+		float y = 0.f;
+		float z = 0.f;
+		float pitch = 0.f;
+		float yaw = 0.f;
+		float roll = 0.f;
+		float scale = 1.f;
+	};
+
+
+	let handler = [](void* user, const char* section, const char* name, const char* value) {
+		auto pConfig = (MeshConfig*)user;
+		#define SECTION(s) (strcmp(section, s) == 0)
+		#define MATCH(n) (strcmp(name, n) == 0)
+		if (!SECTION("Mesh"))
+			;
+		else if (MATCH("path"))
+			pConfig->path = value;
+		else if (MATCH("x"))
+			pConfig->x = strtof(value, nullptr);
+		else if (MATCH("y"))
+			pConfig->y = strtof(value, nullptr);
+		else if (MATCH("z"))
+			pConfig->z = strtof(value, nullptr);
+		else if (MATCH("pitch"))
+			pConfig->pitch = strtof(value, nullptr);
+		else if (MATCH("yaw"))
+			pConfig->yaw = strtof(value, nullptr);
+		else if (MATCH("roll"))
+			pConfig->roll = strtof(value, nullptr);
+		else if (MATCH("scale"))
+			pConfig->scale = strtof(value, nullptr);
+		#undef SECTION
+		#undef MATCH
+		return 1;
+	};
+
+	MeshConfig config;
+	let iniPath = "Assets/"s + configPath;
+	if (ini_parse(iniPath.c_str(), handler, &config))
+		return nullptr;
+
+	config.path = "Assets/"s + config.path;
+
+	Importer importer;
+	let scene = importer.ReadFile(
+		config.path.c_str(),
+		aiProcess_PreTransformVertices     |
+		aiProcess_CalcTangentSpace         |
+		aiProcess_JoinIdenticalVertices    |
+		aiProcess_MakeLeftHanded           |
+		aiProcess_Triangulate              |
+		aiProcess_RemoveRedundantMaterials |
+		aiProcess_SortByPType              |
+		aiProcess_FindDegenerates          |
+		aiProcess_FindInvalidData          |
+		aiProcess_OptimizeMeshes
+	);
+
+	if (!scene || scene->mNumMeshes == 0)
+		return nullptr;
+
+	if (scene->mNumMeshes > 1)
+		puts("[TODO] MULTI-SUBMESH IMPORT SUPPORT");
+	
+
+	let importTransform = HPose(
+		quat(glm::radians(vec3(config.pitch, config.yaw, config.roll))),
+		vec3(config.x, config.y, config.z),
+		vec3(config.scale, config.scale, config.scale)
+	).ToMatrix();
+
+	let mesh = scene->mMeshes[0];
+
+	let numVerts = mesh->mNumVertices;
+	let numIndices = (3 * mesh->mNumFaces);
+
+	let sz = uint32(
+		sizeof(MeshAssetData) +
+		sizeof(SubmeshHeader) +
+		sizeof(MeshVertex) * numVerts +
+		sizeof(uint32) * numIndices
+	);
+
+	let result = AllocAssetData<MeshAssetData>(sz);
+	result->SubmeshCount = 1;
+
+	AssetDataWriter writer(result, sizeof(MeshAssetData));
+	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
+	pSubmesh->IndexCount = numIndices;
+	pSubmesh->VertexCount = numVerts;
+	pSubmesh->VertexOffset = writer.GetOffset();
+
+	for (uint32 it = 0; it < numVerts; ++it) {
+		MeshVertex p;
+		p.position = importTransform * vec4(FromAI(mesh->mVertices[it]), 1);
+		p.uv.x = mesh->mTextureCoords[0][it].x;
+		p.uv.y = mesh->mTextureCoords[0][it].y;
+		p.normal = FromAI(mesh->mNormals[it]);
+		p.color = 0xffffffff; // TODO: Read Vertexc Color + Convert To Hex
+		writer.WriteValue(p);
+	}
+
+	pSubmesh->IndexOffset = writer.GetOffset();
+	for(uint32 it=0; it<mesh->mNumFaces; ++it) {
+		let& face = mesh->mFaces[it];
+		CHECK_ASSERT(face.mNumIndices == 3);
+		writer.WriteValue(face.mIndices[0]);
+		writer.WriteValue(face.mIndices[2]);
+		writer.WriteValue(face.mIndices[1]);
+	}
+
+	return result;
 }
 
 MeshAssetData* CreateCubeMeshAssetData(float extent) {

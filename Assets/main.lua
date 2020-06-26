@@ -3,10 +3,13 @@ trinket.log "Hello..."
 
 -- create some assets
 
-local mat_checkboard = trinket.load_material "checkerboard.mat"
-local mat_surface = trinket.load_material "surface.mat"
+local mat_checkboard = trinket.import_material "checkerboard.mat"
+local mat_surface = trinket.import_material "surface.mat"
 local mesh_plane = trinket.create_plane_mesh("plane", 4)
 local mesh_box = trinket.create_cube_mesh("cube", 0.25)
+
+local mesh_mecha = trinket.import_mesh "mecha.mesh"
+local mat_mecha = trinket.import_material "mecha.mat"
 
 -- place floor in scene
 
@@ -14,6 +17,12 @@ local floor = trinket.create_object("floor")
 trinket.attach_rendermesh_to(floor, mesh_plane, mat_checkboard, false)
 trinket.set_rotation(floor, -90, 0, 0)
 trinket.add_ground_plane()
+
+-- place mecha in scene
+
+local mecha = trinket.create_object("mecha")
+trinket.attach_rendermesh_to(mecha, mesh_mecha, mat_mecha)
+trinket.set_rotation(mecha,0, 180, 0)
 
 -- scatter boxes
 

@@ -7,33 +7,19 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtx/transform.hpp>
+#include <assimp/vector3.h>
 
 #define RPOSE_IDENTITY  (RPose(ForceInit::Default))
 #define HPOSE_IDENTITY (HPose(ForceInit::Default))
 #define RELATIVE_POSE_IDENTITY (RelativePose(ForceInit::Default))
 
-union AliasVec3 {
-	vec3 v;
-	physx::PxVec3 px;
+inline const physx::PxVec3& ToPX(const vec3& v) { return reinterpret_cast<const physx::PxVec3&>(v); }
+inline const physx::PxQuat& ToPX(const quat& q) { return reinterpret_cast<const physx::PxQuat&>(q); }
+inline const aiVector3D& ToAI(const vec3& v) { return reinterpret_cast<const aiVector3D&>(v); }
 
-	AliasVec3(const vec3& a) noexcept : v(a) {}
-	AliasVec3(const physx::PxVec3& a) noexcept : px(a) {}
-
-};
-
-union AliasQuat {
-	quat q;
-	physx::PxQuat px;
-	AliasQuat(const quat& a) noexcept : q(a) {}
-	AliasQuat(const physx::PxQuat& a) noexcept : px(a) {}
-};
-
-inline physx::PxVec3 ToPx(const vec3 v) { return AliasVec3(v).px; }
-inline physx::PxQuat ToPx(const quat q) { return AliasQuat(q).px; }
-inline vec3 FromPx(physx::PxVec3 v) { return AliasVec3(v).v; }
-inline quat FromPx(physx::PxQuat q) { return AliasQuat(q).q; }
-
-
+inline const vec3& FromPX(const physx::PxVec3& v) { return reinterpret_cast<const vec3&>(v); }
+inline const quat& FromPX(const physx::PxQuat& q) { return reinterpret_cast<const quat&>(q); }
+inline const vec3& FromAI(const aiVector3D& v) { return reinterpret_cast<const vec3&>(v); }
 
 struct RPose {
 	
@@ -51,7 +37,7 @@ struct RPose {
 	explicit RPose(vec3 aPosition) noexcept : rotation(1.f, 0.f, 0.f, 0.f), position(aPosition) {}
 	explicit RPose(quat aRotation) noexcept : rotation(aRotation), position(0.f, 0.f, 0.f) {}
 	explicit RPose(quat aRotation, vec3 aPosition) noexcept : rotation(aRotation), position(aPosition) {}
-	explicit RPose(const physx::PxTransform& px) noexcept : rotation(FromPx(px.q)), position(FromPx(px.p)) {}
+	explicit RPose(const physx::PxTransform& px) noexcept : rotation(FromPX(px.q)), position(FromPX(px.p)) {}
 
 	mat4 ToMatrix() const { 
 		//return glm::translate(position) * mat4(rotation); 
@@ -63,7 +49,7 @@ struct RPose {
 			vec4(position, 1.f)
 		);
 	}
-	physx::PxTransform ToPX() const { return physx::PxTransform(ToPx(position), ToPx(rotation)); }
+	physx::PxTransform ToPX() const { return physx::PxTransform(::ToPX(position), ::ToPX(rotation)); }
 
 	RPose operator*(const RPose& rhs) const { return RPose(rotation * rhs.rotation, position + rotation * (rhs.position)); }
 
