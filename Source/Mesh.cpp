@@ -174,8 +174,6 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 		puts("[TODO] MULTI-SUBMESH IMPORT SUPPORT");
 	
 
-	// ASSIMP stores in a weird form of row-major
-
 	struct SceneItem {
 		aiNode* pNode;
 		mat4 toWorld;
