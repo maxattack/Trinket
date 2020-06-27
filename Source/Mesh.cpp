@@ -14,6 +14,10 @@
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
 
+
+#include <glm/gtx/norm.hpp>
+
+
 const LayoutElement MeshVertexLayoutElems[4]{
 	LayoutElement{ 0, 0, 3, VT_FLOAT32, false },
 	LayoutElement{ 1, 0, 3, VT_FLOAT32, false },
@@ -34,6 +38,7 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 		float yaw = 0.f;
 		float roll = 0.f;
 		float scale = 1.f;
+		float clipDistance = 0.f;
 		bool includeSkinnedMeshes = true;
 	};
 
@@ -60,6 +65,10 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 			pConfig->roll = strtof(value, nullptr);
 		else if (MATCH("scale"))
 			pConfig->scale = strtof(value, nullptr);
+		else if (MATCH("clipDistance"))
+			pConfig->clipDistance = strtof(value, nullptr);
+		else if (MATCH("includeSkin"))
+			pConfig->includeSkinnedMeshes = strcmp(value, "false") != 0;
 		#undef SECTION
 		#undef MATCH
 		return 1;
@@ -130,6 +139,8 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 		for (uint32 it = 0; it < numVerts; ++it) {
 			MeshVertex p;
 			p.position = importTransform * vec4(FromAI(mesh->mVertices[it]), 1);
+			if (config.clipDistance > 0.f && glm::length2(p.position) > config.clipDistance * config.clipDistance)
+				p.position = vec3(0,0,0);
 			p.uv = FromAI(mesh->mTextureCoords[0][it]);
 			p.normal = FromAI(mesh->mNormals[it]);
 			p.color = 0xffffffff; // TODO: Read Vertexc Color + Convert To Hex
@@ -205,6 +216,8 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 			for(uint32 vit=0; vit<pMesh->mNumVertices; ++vit) {
 				MeshVertex vtx;
 				vtx.position = item.toWorld * vec4(FromAI(pMesh->mVertices[vit]), 1.f);
+				if (config.clipDistance > 0.f && glm::length2(vtx.position) > config.clipDistance * config.clipDistance)
+					vtx.position = vec3(0, 0, 0);
 				vtx.normal = normalMatrix * FromAI(pMesh->mNormals[vit]);
 				vtx.uv = FromAI(pMesh->mTextureCoords[0][vit]);
 				vtx.color = 0xffffffff;

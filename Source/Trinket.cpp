@@ -9,27 +9,6 @@
 #include "Scripting.h"
 #include "Editor.h"
 
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-
-#include <assimp/DefaultLogger.hpp>
-#include <assimp/LogStream.hpp>
-
-#include <glm/gtx/norm.hpp>
-
-//------------------------------------------------------------------------------------------
-
-void PrintMatrix(const aiMatrix4x4& m) {
-	//printf("{ %.2f, %.2f, %.2f, %.2f }\n{ %.2f, %.2f, %.2f, %.2f }\n{ %.2f, %.2f, %.2f, %.2f }\n{ %.2f, %.2f, %.2f, %.2f }\n",
-	//	m.a1, m.a2, m.a3, m.a4,
-	//	m.b1, m.b2, m.b3, m.b4,
-	//	m.c1, m.c2, m.c3, m.c4,
-	//	m.d1, m.d2, m.d3, m.d4
-	//);
-	printf("{ %.2f %.2f %.2f }\n", m.a4, m.b4, m.c4);
-}
-
 int main(int argc, char** argv) {
     using namespace std;
 

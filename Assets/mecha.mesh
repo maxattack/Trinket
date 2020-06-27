@@ -1,5 +1,5 @@
 [Mesh]
 path = mecha.fbx
 scale = 0.001
-pitch = 0
-
+includeSkin = true
+clipDistance = 10

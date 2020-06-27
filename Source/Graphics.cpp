@@ -362,7 +362,7 @@ void Graphics::Draw() {
 
 	// TODO: actually calculate view bounds
 	float  r = 5.f;
-	const vec3 viewCenter (0, 0.0f, 0);
+	const vec3 viewCenter (0.f, 0.f, 0.f);
 	let viewMin = viewCenter - vec3(r, r, r);
 	let viewMax = viewCenter + vec3(r, r, r);
 	let viewExtent = viewMax - viewMin;

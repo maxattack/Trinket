@@ -22,7 +22,6 @@ trinket.add_ground_plane()
 
 local mecha = trinket.create_object("mecha")
 trinket.attach_rendermesh_to(mecha, mesh_mecha, mat_mecha)
-trinket.set_rotation(mecha,0, 180, 0)
 
 -- scatter boxes
 
@@ -66,6 +65,8 @@ function clamp(x, min, max)
 	end
 end
 
+local mecha_rotation = 0
+
 function tick(dt)
 
 	-- camera rotation
@@ -97,6 +98,9 @@ function tick(dt)
 	-- wireframe.line_to(0.5,0,0)
 	-- wireframe.line_to(0.5,0.5, 0)
 	-- wireframe.draw_cube(0.025)
+
+	mecha_rotation = mecha_rotation + 90 * dt
+	trinket.set_rotation(mecha,0, mecha_rotation, 0)
 
 end
 
