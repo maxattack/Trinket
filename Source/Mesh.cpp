@@ -34,6 +34,7 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 		float yaw = 0.f;
 		float roll = 0.f;
 		float scale = 1.f;
+		bool includeSkinnedMeshes = true;
 	};
 
 
@@ -71,11 +72,89 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 
 	config.path = "Assets/"s + config.path;
 
+	let importTransform = HPose(
+		quat(glm::radians(vec3(config.pitch, config.yaw, config.roll))),
+		vec3(config.x, config.y, config.z),
+		vec3(config.scale, config.scale, config.scale)
+	).ToMatrix();
+
 	Importer importer;
+
+	if (!config.includeSkinnedMeshes) {
+
+		// let ASSIMP pretransform vertices (won't include skinned meshes)
+		let scene = importer.ReadFile(
+			config.path.c_str(),
+			aiProcess_PreTransformVertices     |
+			aiProcess_CalcTangentSpace         |
+			aiProcess_JoinIdenticalVertices    |
+			aiProcess_MakeLeftHanded           |
+			aiProcess_Triangulate              |
+			aiProcess_RemoveRedundantMaterials |
+			aiProcess_SortByPType              |
+			aiProcess_FindDegenerates          |
+			aiProcess_FindInvalidData          |
+			aiProcess_FlipUVs                  |
+			aiProcess_FlipWindingOrder         |
+			aiProcess_OptimizeMeshes
+		);
+
+		if (!scene || scene->mNumMeshes == 0)
+			return nullptr;
+
+		if (scene->mNumMeshes > 1)
+			puts("[TODO] MULTI-SUBMESH IMPORT SUPPORT");
+		
+
+		let mesh = scene->mMeshes[0];
+
+		let numVerts = mesh->mNumVertices;
+		let numIndices = (3 * mesh->mNumFaces);
+
+		let sz = uint32(
+			sizeof(MeshAssetData) +
+			sizeof(SubmeshHeader) +
+			sizeof(MeshVertex) * numVerts +
+			sizeof(uint32) * numIndices
+		);
+
+		let result = AllocAssetData<MeshAssetData>(sz);
+		result->SubmeshCount = 1;
+
+		AssetDataWriter writer(result, sizeof(MeshAssetData));
+		auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
+		pSubmesh->IndexCount = numIndices;
+		pSubmesh->VertexCount = numVerts;
+		pSubmesh->VertexOffset = writer.GetOffset();
+
+		for (uint32 it = 0; it < numVerts; ++it) {
+			MeshVertex p;
+			p.position = importTransform * vec4(FromAI(mesh->mVertices[it]), 1);
+			p.uv = FromAI(mesh->mTextureCoords[0][it]);
+			p.normal = FromAI(mesh->mNormals[it]);
+			p.color = 0xffffffff; // TODO: Read Vertexc Color + Convert To Hex
+			writer.WriteValue(p);
+		}
+
+		pSubmesh->IndexOffset = writer.GetOffset();
+		for(uint32 it=0; it<mesh->mNumFaces; ++it) {
+			let& face = mesh->mFaces[it];
+			CHECK_ASSERT(face.mNumIndices == 3);
+			writer.WriteValue(face.mIndices[0]);
+			writer.WriteValue(face.mIndices[1]);
+			writer.WriteValue(face.mIndices[2]);
+		}
+
+		return result;
+
+	}
+
+	//V2 - pretransform vertices ourselves, so we can 
+	//     also include skinned meshes.
 	let scene = importer.ReadFile(
 		config.path.c_str(),
-		aiProcess_PreTransformVertices     |
 		aiProcess_CalcTangentSpace         |
+		aiProcess_PopulateArmatureData     |
 		aiProcess_JoinIdenticalVertices    |
 		aiProcess_MakeLeftHanded           |
 		aiProcess_Triangulate              |
@@ -83,26 +162,110 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 		aiProcess_SortByPType              |
 		aiProcess_FindDegenerates          |
 		aiProcess_FindInvalidData          |
+		aiProcess_FlipUVs                  |
+		aiProcess_FlipWindingOrder         |
 		aiProcess_OptimizeMeshes
 	);
-
 	if (!scene || scene->mNumMeshes == 0)
 		return nullptr;
 
-	if (scene->mNumMeshes > 1)
+
+	if (scene->mNumMaterials > 1)
 		puts("[TODO] MULTI-SUBMESH IMPORT SUPPORT");
 	
 
-	let importTransform = HPose(
-		quat(glm::radians(vec3(config.pitch, config.yaw, config.roll))),
-		vec3(config.x, config.y, config.z),
-		vec3(config.scale, config.scale, config.scale)
-	).ToMatrix();
+	// ASSIMP stores in a weird form of row-major
 
-	let mesh = scene->mMeshes[0];
+	struct SceneItem {
+		aiNode* pNode;
+		mat4 toWorld;
+	};
 
-	let numVerts = mesh->mNumVertices;
-	let numIndices = (3 * mesh->mNumFaces);
+	eastl::vector<MeshVertex> vertices;
+	eastl::vector<uint32> indices;
+	eastl::vector<SceneItem> items;
+	items.push_back(SceneItem { scene->mRootNode, importTransform * FromAI(scene->mRootNode->mTransformation) });
+	for (uint32 currItem = 0; currItem < items.size(); ++currItem) {
+		let item = items[currItem];
+
+		for(uint32 it=0; it<item.pNode->mNumChildren; ++it) {
+			let child = item.pNode->mChildren[it];
+			let toParent = FromAI(child->mTransformation);
+			items.push_back(SceneItem { child, item.toWorld * toParent });
+		}
+
+		let n = item.pNode->mNumMeshes;
+		if (n == 0)
+			continue;
+
+		const mat3 normalMatrix = glm::inverseTranspose(item.toWorld);
+		for(uint32 it=0; it<n; ++it) {
+			let pMesh = scene->mMeshes[item.pNode->mMeshes[it]];
+			
+			let startIdx = uint32(vertices.size());
+			vertices.reserve(startIdx + pMesh->mNumVertices);
+			for(uint32 vit=0; vit<pMesh->mNumVertices; ++vit) {
+				MeshVertex vtx;
+				vtx.position = item.toWorld * vec4(FromAI(pMesh->mVertices[vit]), 1.f);
+				vtx.normal = normalMatrix * FromAI(pMesh->mNormals[vit]);
+				vtx.uv = FromAI(pMesh->mTextureCoords[0][vit]);
+				vtx.color = 0xffffffff;
+				vertices.push_back(vtx);
+			}
+			
+			indices.reserve(indices.size() + 3 * pMesh->mNumFaces);
+			for(uint32 fit=0; fit<pMesh->mNumFaces; ++fit) {
+				let& face = pMesh->mFaces[fit];
+				CHECK_ASSERT(face.mNumIndices == 3);
+				indices.push_back(startIdx + face.mIndices[0]);
+				indices.push_back(startIdx + face.mIndices[1]);
+				indices.push_back(startIdx + face.mIndices[2]);
+			}
+		}
+	}
+
+	// add skinned meshes
+	for (uint32 it = 0; it < scene->mNumMeshes; ++it) {
+		let pMesh = scene->mMeshes[it];
+		if (pMesh->mNumBones == 0)
+			continue;
+
+		let pRootNode = pMesh->mBones[0]->mArmature;
+		mat4 modelMatrix = importTransform;
+
+		for(let& item : items) {
+			if (item.pNode == pRootNode) {
+				modelMatrix = item.toWorld;
+				break;
+			}
+		}
+
+		const mat3 normalMatrix = glm::inverseTranspose(modelMatrix);
+
+		let startIdx = uint32(vertices.size());
+		vertices.reserve(startIdx + pMesh->mNumVertices);
+		for (uint32 vit = 0; vit < pMesh->mNumVertices; ++vit) {
+			MeshVertex vtx;
+			vtx.position = modelMatrix * vec4(FromAI(pMesh->mVertices[vit]), 1.f);
+			vtx.normal = normalMatrix * FromAI(pMesh->mNormals[vit]);
+			vtx.uv = FromAI(pMesh->mTextureCoords[0][vit]);
+			vtx.color = 0xffffffff;
+			vertices.push_back(vtx);
+		}
+
+		indices.reserve(indices.size() + 3 * pMesh->mNumFaces);
+		for (uint32 fit = 0; fit < pMesh->mNumFaces; ++fit) {
+			let& face = pMesh->mFaces[fit];
+			CHECK_ASSERT(face.mNumIndices == 3);
+			indices.push_back(startIdx + face.mIndices[0]);
+			indices.push_back(startIdx + face.mIndices[1]);
+			indices.push_back(startIdx + face.mIndices[2]);
+		}
+
+	}
+
+	let numVerts = uint32(vertices.size());
+	let numIndices = uint32(indices.size());
 
 	let sz = uint32(
 		sizeof(MeshAssetData) +
@@ -118,26 +281,12 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
 	pSubmesh->IndexCount = numIndices;
 	pSubmesh->VertexCount = numVerts;
+
 	pSubmesh->VertexOffset = writer.GetOffset();
-
-	for (uint32 it = 0; it < numVerts; ++it) {
-		MeshVertex p;
-		p.position = importTransform * vec4(FromAI(mesh->mVertices[it]), 1);
-		p.uv.x = mesh->mTextureCoords[0][it].x;
-		p.uv.y = mesh->mTextureCoords[0][it].y;
-		p.normal = FromAI(mesh->mNormals[it]);
-		p.color = 0xffffffff; // TODO: Read Vertexc Color + Convert To Hex
-		writer.WriteValue(p);
-	}
-
+	writer.WriteData(vertices.data(), sizeof(MeshVertex) * numVerts);
+	
 	pSubmesh->IndexOffset = writer.GetOffset();
-	for(uint32 it=0; it<mesh->mNumFaces; ++it) {
-		let& face = mesh->mFaces[it];
-		CHECK_ASSERT(face.mNumIndices == 3);
-		writer.WriteValue(face.mIndices[0]);
-		writer.WriteValue(face.mIndices[2]);
-		writer.WriteValue(face.mIndices[1]);
-	}
+	writer.WriteData(indices.data(), sizeof(uint32) * numIndices);
 
 	return result;
 }

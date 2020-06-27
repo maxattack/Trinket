@@ -72,7 +72,7 @@ bool Physics::TryAttachRigidbodyTo(ObjectID id) {
 
 	let pHierarchy = pScene->GetSublevelHierarchyFor(id);
 	let worldPose = pHierarchy->GetScenePose(id);
-	PxRigidDynamic* body = pPhysics->createRigidDynamic(worldPose->ToPX());
+	PxRigidDynamic* body = pPhysics->createRigidDynamic(worldPose->ToPhysX());
 	body->userData = ObjectHandle(ObjectTag::SCENE_OBJECT, id).p;
 	pDefaultScene->addActor(*body);
 

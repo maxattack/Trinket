@@ -7,19 +7,25 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtx/transform.hpp>
+#include <assimp/vector2.h>
 #include <assimp/vector3.h>
+#include <assimp/matrix4x4.h>
 
 #define RPOSE_IDENTITY  (RPose(ForceInit::Default))
 #define HPOSE_IDENTITY (HPose(ForceInit::Default))
 #define RELATIVE_POSE_IDENTITY (RelativePose(ForceInit::Default))
 
+// TODO: move all these conversions to a dedicated file?
 inline const physx::PxVec3& ToPX(const vec3& v) { return reinterpret_cast<const physx::PxVec3&>(v); }
 inline const physx::PxQuat& ToPX(const quat& q) { return reinterpret_cast<const physx::PxQuat&>(q); }
+inline const aiVector2D& ToAI(const vec2& v) { return reinterpret_cast<const aiVector2D&>(v); }
 inline const aiVector3D& ToAI(const vec3& v) { return reinterpret_cast<const aiVector3D&>(v); }
 
 inline const vec3& FromPX(const physx::PxVec3& v) { return reinterpret_cast<const vec3&>(v); }
 inline const quat& FromPX(const physx::PxQuat& q) { return reinterpret_cast<const quat&>(q); }
+inline const vec2& FromAI(const aiVector2D& v) { return reinterpret_cast<const vec2&>(v); }
 inline const vec3& FromAI(const aiVector3D& v) { return reinterpret_cast<const vec3&>(v); }
+inline const mat4 FromAI(const aiMatrix4x4& m) { return glm::transpose(reinterpret_cast<const mat4&>(m)); }
 
 struct RPose {
 	
@@ -49,7 +55,7 @@ struct RPose {
 			vec4(position, 1.f)
 		);
 	}
-	physx::PxTransform ToPX() const { return physx::PxTransform(::ToPX(position), ::ToPX(rotation)); }
+	physx::PxTransform ToPhysX() const { return physx::PxTransform(ToPX(position), ToPX(rotation)); }
 
 	RPose operator*(const RPose& rhs) const { return RPose(rotation * rhs.rotation, position + rotation * (rhs.position)); }
 
@@ -116,7 +122,7 @@ struct HPose {
 		);
 	}
 
-	physx::PxTransform ToPX() const { return rpose.ToPX(); }
+	physx::PxTransform ToPhysX() const { return rpose.ToPhysX(); }
 
 	HPose operator*(const HPose& rhs) const {
 		return HPose(
