@@ -35,8 +35,8 @@ Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel)
 		TextureDesc SMDesc;
 		SMDesc.Name = "Shadow Map";
 		SMDesc.Type = RESOURCE_DIM_TEX_2D;
-		SMDesc.Width = 4096;
-		SMDesc.Height = 4096;
+		SMDesc.Width = 2048;
+		SMDesc.Height = 2048;
 		SMDesc.Format = TEX_FORMAT_SHADOW_MAP;
 		SMDesc.BindFlags = BIND_SHADER_RESOURCE | BIND_DEPTH_STENCIL;
 		pDevice->CreateTexture(SMDesc, nullptr, &pShadowMap);
@@ -86,7 +86,8 @@ Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel)
 		PSODesc.GraphicsPipeline.InputLayout.NumElements = _countof(MeshVertexLayoutElems);
 		PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_STATIC;
 		PSODesc.GraphicsPipeline.RasterizerDesc.DepthClipEnable = false;
-		PSODesc.GraphicsPipeline.RasterizerDesc.SlopeScaledDepthBias = 5.f;
+		PSODesc.GraphicsPipeline.RasterizerDesc.DepthBias = 60;
+		PSODesc.GraphicsPipeline.RasterizerDesc.SlopeScaledDepthBias = 3.33f;
 		pDevice->CreatePipelineState(PCI, &pShadowPipelineState);
 		pShadowPipelineState->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(pRenderConstants);
 		pShadowPipelineState->CreateShaderResourceBinding(&pShadowResourceBinding, true);

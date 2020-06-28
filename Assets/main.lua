@@ -99,7 +99,7 @@ function tick(dt)
 	-- wireframe.line_to(0.5,0.5, 0)
 	-- wireframe.draw_cube(0.025)
 
-	mecha_rotation = mecha_rotation + 90 * dt
+	mecha_rotation = mecha_rotation + 10 * dt
 	trinket.set_rotation(mecha,0, mecha_rotation, 0)
 
 end
