@@ -128,6 +128,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const M
 	PSODesc.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	PSODesc.GraphicsPipeline.RasterizerDesc.CullMode = CULL_MODE_BACK;
 	PSODesc.GraphicsPipeline.DepthStencilDesc.DepthEnable = true;
+	PSODesc.GraphicsPipeline.SmplDesc.Count = pGraphics->GetDisplay()->GetMultisampleCount();
 
 	ShaderCreateInfo SCI;
 	SCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;

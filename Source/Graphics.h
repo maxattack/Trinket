@@ -116,6 +116,10 @@ private:
 
 	RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
 
+	RefCntAutoPtr<ITextureView> m_pMSColorRTV;
+	RefCntAutoPtr<ITextureView> m_pMSDepthDSV;
+
+
 	RefCntAutoPtr<IBuffer>                pRenderConstants;
 
 	RefCntAutoPtr<ITexture>               pShadowMap;

@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Common.h"
+#include "Math.h"
 #include <SDL.h>
 #include <SDL_syswm.h>
 
@@ -45,11 +46,22 @@ public:
 	ISwapChain* GetSwapChain() { return pSwapChain; }
 
 	float GetAspect() const { let& SCD = pSwapChain->GetDesc(); return float(SCD.Width) / float(SCD.Height); }
+	
+	bool IsMultisampling() const { return MSAA_Count > 1; }
+	int GetMultisampleCount() const { return MSAA_Count; }
+
+	ITextureView* GetRenderTargetView() { return IsMultisampling() ? pMSColorRTV : pSwapChain->GetCurrentBackBufferRTV(); }
+	ITextureView* GetDepthTargetView() { return IsMultisampling() ? pMSDepthDSV : pSwapChain->GetDepthBufferDSV(); }
 
 	void HandleEvent(const SDL_Event& aEvent);
+
+	void SetMultisamplingTargetAndClear();
+	void ResolveMultisampling();
 	void Present();
 
 private:
+
+	void CreateMSAARenderTarget();
 
 	SDL_Window* pWindow;
 	RefCntAutoPtr<IRenderDevice>  pDevice;
@@ -57,5 +69,11 @@ private:
 	RefCntAutoPtr<IEngineFactory> pEngineFactory;
 	RefCntAutoPtr<ISwapChain>     pSwapChain;
 
+	vec4 clearColor = vec4(0.1f, 0.1f, 0.2f, 0.0f);
+
+	// Should this belong in graphics?
+	uint32 MSAA_Count = 4;
+	RefCntAutoPtr<ITextureView> pMSColorRTV;
+	RefCntAutoPtr<ITextureView> pMSDepthDSV;
 
 };

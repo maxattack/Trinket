@@ -55,10 +55,10 @@ int main(int argc, char** argv) {
 
 		// draw
 		world.gfx.Draw();
+		display.ResolveMultisampling();
 		#if TRINKET_EDITOR
 		editor.Draw();
 		#endif
-
 		display.Present();
 	}
 

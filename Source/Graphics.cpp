@@ -127,6 +127,7 @@ Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel)
 		}
 		PSODesc.GraphicsPipeline.pVS = pShadowMapDebugVS;
 		PSODesc.GraphicsPipeline.pPS = pShadowMapDebugPS;
+		PSODesc.GraphicsPipeline.SmplDesc.Count = pDisplay->GetMultisampleCount();
 		PSODesc.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
 		SamplerDesc SamLinearClampDesc{
 			FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR,
@@ -157,6 +158,7 @@ Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel)
 		PSODesc.GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_LINE_LIST;
 		PSODesc.GraphicsPipeline.RasterizerDesc.CullMode = CULL_MODE_NONE;
 		PSODesc.GraphicsPipeline.DepthStencilDesc.DepthEnable = false;
+		PSODesc.GraphicsPipeline.SmplDesc.Count = pDisplay->GetMultisampleCount();
 
 		ShaderCreateInfo SCI;
 		SCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
@@ -415,12 +417,8 @@ void Graphics::Draw() {
 	let view = pov.pose.Inverse().ToMatrix();
 	let aspect = pDisplay->GetAspect();
 	let viewProjection = glm::perspective(glm::radians(pov.fovy), aspect, pov.zNear, pov.zFar) * view;
-	const float ClearColor[] = { 0.50f, 0.05f, 0.55f, 1.0f };
-	auto* pRTV = pSwapChain->GetCurrentBackBufferRTV();
-	auto* pDSV = pSwapChain->GetDepthBufferDSV();
-	pContext->SetRenderTargets(1, &pRTV, pDSV, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-	pContext->ClearRenderTarget(pRTV, ClearColor, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-	pContext->ClearDepthStencil(pDSV, CLEAR_DEPTH_FLAG, 1.f, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+	pDisplay->SetMultisamplingTargetAndClear();
+
 	int itemIdx=0;
 	for(auto& pass : passes) {
 		let bSkip = pass.itemCount == 0 || !pass.pMaterial->GetPass(pass.materialPassIdx).Bind(this);
