@@ -1,10 +1,13 @@
 #include "World.h"
 
 World::World(Display* aDisplay)
-	: skel(&db, &scene)
-	, phys(&db, &scene)
-	, anim(&skel)
-	, gfx(aDisplay, &skel)
+	: tex(this)
+	, mat(this)
+	, mesh(this)
+	, skel(this)
+	, phys(this)
+	, anim(this)
+	, gfx(aDisplay, this)
 	, vm(this)
 {}
 

@@ -48,20 +48,16 @@ struct RenderConstants {
 	vec4 LightDirection;
 };
 
+class World;
+
 class Graphics : IAssetListener, ISceneListener, ISkelRegistryListener {
 public:
 
-	Graphics(Display* aDisplay, SkelRegistry* pSkel);
+	Graphics(Display *aDisplay, World* aWorld);
 	~Graphics();
 
-	SkelRegistry* GetSkelRegistry() const { return pSkel; }
-	AssetDatabase* GetAssets() const { return pAssets; }
-	Scene* GetScene() const { return pScene; }
 	Display* GetDisplay() { return pDisplay; }
-	SDL_Window* GetWindow() { return pDisplay->GetWindow(); }
-	IRenderDevice* GetDevice() { return pDisplay->GetDevice(); }
-	IDeviceContext* GetContext() { return pDisplay->GetContext(); }
-	ISwapChain* GetSwapChain() { return pDisplay->GetSwapChain(); }
+	World* GetWorld() const { return pWorld; }
 	IShaderSourceInputStreamFactory* GetShaderSourceStream() { return pShaderSourceFactory; }
 	IBuffer* GetRenderConstants() { return pRenderConstants; }
 	ITextureView* GetShadowMapSRV() { return pShadowMapSRV; }
@@ -73,19 +69,7 @@ public:
 
 	void SetLightDirection(vec3 direction) { lightDirection = glm::normalize(direction); }
 
-	bool HasMaterial(ObjectID id) { return materials.Contains(id); }
-	Material* LoadMaterial(ObjectID id, const MaterialAssetData* pData);
-	Material* GetMaterial(ObjectID id) { return DerefPP(materials.TryGetComponent<1>(id)); }
-	Material* FindMaterial(Name path) { return GetMaterial(pAssets->FindAsset(path)); }
-
-	bool HasTexture(ObjectID id) { return textures.Contains(id); }
-	ITexture* LoadTexture(ObjectID id, const TextureAssetData* pData);
-	ITexture* GetTexture(ObjectID id) { let pRef = textures.TryGetComponent<1>(id); return pRef ? *pRef : nullptr; }
-	ITexture* FindTexture(Name path) { return GetTexture(pAssets->FindAsset(path)); }
-
-	Mesh* AddMesh(ObjectID id);
-	Mesh* GetMesh(ObjectID id) { return DerefPP(meshes.TryGetComponent<1>(id)); }
-	Mesh* FindMesh(Name path) { return GetMesh(pAssets->FindAsset(path)); }
+	void AddRenderPasses(Material* pMaterial);
 
 	bool AddMeshRenderer(ObjectID id, const RenderMeshData& Data);
 	const RenderMeshData* GetMeshRenderer(ObjectID id) const { return meshRenderers.TryGetComponent<1>(id); }
@@ -102,13 +86,8 @@ private:
 	void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) override;
 
 	Display* pDisplay;
-	SkelRegistry* pSkel;
-	AssetDatabase* pAssets;
-	Scene* pScene;
+	World* pWorld;
 
-	ObjectPool<StrongRef<Mesh>> meshes;
-	ObjectPool<RefCntAutoPtr<ITexture>> textures;
-	ObjectPool<StrongRef<Material>> materials;
 	ObjectPool<RenderMeshData> meshRenderers;
 
 	CameraPOV pov;

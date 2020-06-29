@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
 	static Display display("Trinket");
 	static World world(&display);
 	#if TRINKET_EDITOR
-	static Editor editor(&world);
+	static Editor editor(&display, &world);
 	#endif
 
 	// init content

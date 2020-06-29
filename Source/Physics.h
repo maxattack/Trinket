@@ -21,10 +21,11 @@ namespace physx {
 #endif
 }
 
-class Physics {
+class World;
+
+class PhysicsRuntime {
 private:
-	AssetDatabase *pAssets;
-	Scene* pScene;
+	World* pWorld;
 	physx::PxFoundation* pFoundation;
 	physx::PxPhysics* pPhysics;
 	physx::PxDefaultCpuDispatcher* pDispatcher;
@@ -47,8 +48,10 @@ private:
 
 public:
 
-	Physics(AssetDatabase* aAssets, Scene* aScene);
-	~Physics();
+	PhysicsRuntime(World* pWorld);
+	~PhysicsRuntime();
+
+	World* GetWorld() const { return pWorld; }
 
 	void TryAddGroundPlane();
 	bool TryAttachRigidbodyTo(ObjectID id);

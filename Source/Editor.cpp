@@ -5,20 +5,22 @@
 
 #if TRINKET_EDITOR
 
+#include "Display.h"
 #include "World.h"
 #include <iostream>
 
 
-Editor::Editor(World* aWorld) 
-	: pWorld(aWorld)
-	, impl(aWorld->gfx.GetDevice(), aWorld->gfx.GetSwapChain()->GetDesc().ColorBufferFormat, aWorld->gfx.GetSwapChain()->GetDesc().DepthBufferFormat)
+Editor::Editor(Display* aDisplay, World* aWorld) 
+	: pDisplay(aDisplay)
+	, pWorld(aWorld)
+	, impl(aDisplay->GetDevice(), aDisplay->GetSwapChain()->GetDesc().ColorBufferFormat, aDisplay->GetSwapChain()->GetDesc().DepthBufferFormat)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	io.IniFilename = nullptr;
 	ImGui::StyleColorsDark();
-	ImGui_ImplSDL2_InitForD3D(aWorld->gfx.GetWindow());
+	ImGui_ImplSDL2_InitForD3D(pDisplay->GetWindow());
 	renameBuf[0] = 0;
 }
 
@@ -30,8 +32,8 @@ void Editor::HandleEvent(const SDL_Event& Event) {
 }
 
 void Editor::BeginUpdate() {
-	ImGui_ImplSDL2_NewFrame(pWorld->gfx.GetWindow());
-	auto& SCDesc = pWorld->gfx.GetSwapChain()->GetDesc();
+	ImGui_ImplSDL2_NewFrame(pDisplay->GetWindow());
+	auto& SCDesc = pDisplay->GetSwapChain()->GetDesc();
 	impl.NewFrame(SCDesc.Width, SCDesc.Height, SCDesc.PreTransform);
 	if (showDemoWindow)
 		ImGui::ShowDemoWindow(&showDemoWindow);
@@ -204,7 +206,7 @@ void Editor::ShowInspector() {
 }
 
 void Editor::Draw() {
-	impl.Render(pWorld->gfx.GetContext());
+	impl.Render(pDisplay->GetContext());
 }
 
 

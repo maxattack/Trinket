@@ -2,10 +2,11 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #pragma once
-#include "Display.h"
-#include "Object.h"
-#include "Math.h"
 #include "AssetData.h"
+#include "Display.h"
+#include "Math.h"
+#include "Name.h"
+#include "ObjectPool.h"
 
 struct MeshVertex {
 	vec3 position;
@@ -91,5 +92,23 @@ public:
 	int GetSubmeshCount() const { return 1; }
 	SubMesh& GetSubmesh(int idx) { return defaultSubmesh; }
 	bool TryLoad(Graphics* gfx, bool dynamic, const MeshAssetData* pAsset) { return defaultSubmesh.TryLoad(gfx, dynamic, pAsset, 0); }
+
+};
+
+class World;
+
+class MeshRegistry {
+public:
+
+	MeshRegistry(World* aWorld) : pWorld(aWorld) {}
+
+	Mesh* AddMesh(ObjectID id);
+	Mesh* GetMesh(ObjectID id) { return DerefPP(meshes.TryGetComponent<1>(id)); }
+	Mesh* FindMesh(Name path);
+
+private:
+
+	World* pWorld;
+	ObjectPool<StrongRef<Mesh>> meshes;
 
 };

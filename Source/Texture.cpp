@@ -2,7 +2,8 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #include "Texture.h"
-#include "Graphics.h"
+#include "World.h"
+
 #include <stb_image.h>
 #include <ini.h>
 
@@ -84,4 +85,34 @@ RefCntAutoPtr<ITexture> LoadTextureHandleFromAsset(Display* pDisplay, const Text
 	pDisplay->GetDevice()->CreateTexture(desc, &texData, &pResult);
 
 	return pResult;
+}
+
+
+TextureRegistry::TextureRegistry(World* aWorld) 
+	: pWorld(aWorld)
+{
+}
+
+TextureRegistry::~TextureRegistry() {
+}
+
+ITexture* TextureRegistry::LoadTexture(ObjectID id, const TextureAssetData* pData) {
+	let idOkay =
+		pWorld->GetAssetDatabase()->IsValid(id) &&
+		!textures.Contains(id);
+	if (!idOkay)
+		return nullptr;
+
+	auto result = LoadTextureHandleFromAsset(pWorld->GetGraphics()->GetDisplay(), pData);
+	if (!result)
+		return nullptr;
+
+	let bAdded = textures.TryAppendObject(id, result);
+	CHECK_ASSERT(bAdded);
+
+	return result;
+}
+
+ITexture* TextureRegistry::FindTexture(Name path) {
+	return GetTexture(pWorld->GetAssetDatabase()->FindAsset(path));
 }

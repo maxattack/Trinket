@@ -2,15 +2,16 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #include "Animation.h"
+#include "World.h"
 
-AnimationRuntime::AnimationRuntime(SkelRegistry* aRegistry)
-	: pRegistry(aRegistry)
+AnimationRuntime::AnimationRuntime(World* aWorld)
+	: pWorld(aWorld)
 {
-	pRegistry->AddListener(this);
+	pWorld->GetSkelRegistory()->AddListener(this);
 }
 
 AnimationRuntime::~AnimationRuntime() {
-	pRegistry->RemoveListener(this);
+	pWorld->GetSkelRegistory()->RemoveListener(this);
 }
 
 CharacterRig* AnimationRuntime::CreateCharacterRig(SkelAsset* skel) {

@@ -2,6 +2,7 @@
 #include "Input.h"
 #include "Assets.h"
 #include "Scene.h"
+#include "Mesh.h"
 #include "Skeleton.h"
 #include "Physics.h"
 #include "Animation.h"
@@ -16,8 +17,11 @@ public:
 	Input input;
 	AssetDatabase db;
 	Scene scene;
+	TextureRegistry tex;
+	MaterialRegistry mat;
+	MeshRegistry mesh;
 	SkelRegistry skel;
-	Physics phys;
+	PhysicsRuntime phys;
 	AnimationRuntime anim;
 	Graphics gfx;
 	ScriptVM vm;
@@ -28,4 +32,16 @@ public:
 	void Update();
 
 	World* Clone();
+
+	Input* GetInput() { return &input; }
+	AssetDatabase* GetAssetDatabase() { return &db; }
+	Scene* GetScene() { return &scene; }
+	TextureRegistry* GetTextureRegistry() { return &tex; }
+	MaterialRegistry* GetMaterialRegistry() { return &mat; }
+	MeshRegistry* GetMeshRegistry() { return &mesh; }
+	SkelRegistry* GetSkelRegistory() { return &skel; }
+	PhysicsRuntime* GetPhysicsRuntime() { return &phys; }
+	AnimationRuntime* GetAnimationRuntime() { return &anim; }
+	Graphics* GetGraphics() { return &gfx; }
+	ScriptVM* GetScriptVM() { return &vm; }
 };

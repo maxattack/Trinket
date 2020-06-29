@@ -219,7 +219,7 @@ static int l_import_material(lua_State* lua) {
 
 	// material already loaded?
 	let existingID = w.db.FindAsset(sourcePath);
-	let alreadyLoaded = !existingID.IsNil() && w.gfx.HasMaterial(existingID);
+	let alreadyLoaded = !existingID.IsNil() && w.mat.HasMaterial(existingID);
 	if (alreadyLoaded) {
 		lua_pushobj(lua, ObjectTag::MATERIAL_ASSET, existingID);
 		return 1;
@@ -245,14 +245,14 @@ static int l_import_material(lua_State* lua) {
 				return 1;
 			}
 			let tid = w.db.CreateObject(tpath);
-			w.gfx.LoadTexture(tid, pTexData);
+			w.tex.LoadTexture(tid, pTexData);
 			FreeAssetData(pTexData);
 		}
 	}
 
 	// create the material
 	let id = existingID.IsNil() ? w.db.CreateObject(sourcePath) : existingID;
-	let material = w.gfx.LoadMaterial(id, pAsset);
+	let material = w.mat.LoadMaterial(id, pAsset);
 	if (!material) {
 		if (existingID.IsNil())
 			w.db.Release(id);
@@ -270,7 +270,7 @@ static int l_import_mesh(lua_State* lua) {
 
 	// mesh already loaded?
 	let existingID = w.db.FindAsset(sourcePath);
-	let alreadyLoaded = !existingID.IsNil() && w.gfx.GetMesh(existingID) != nullptr;
+	let alreadyLoaded = !existingID.IsNil() && w.mesh.GetMesh(existingID) != nullptr;
 	if (alreadyLoaded) {
 		lua_pushobj(lua, ObjectTag::MESH_ASSET, existingID);
 		return 1;
@@ -286,7 +286,7 @@ static int l_import_mesh(lua_State* lua) {
 
 	// TODO: default materials?
 	let id = existingID.IsNil() ? w.db.CreateObject(sourcePath) : existingID;
-	let mesh = w.gfx.AddMesh(id);
+	let mesh = w.mesh.AddMesh(id);
 	mesh->TryLoad(&w.gfx, false, pAsset);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
@@ -303,7 +303,7 @@ static int l_create_cube_mesh(lua_State* lua) {
 		pVertices[it].color = 0xff00ffff; // ABGR
 	
 	let id = w.db.CreateObject(name);
-	w.gfx.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
+	w.mesh.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
 	FreeAssetData(meshData);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
@@ -315,7 +315,7 @@ static int l_create_plane_mesh(lua_State* lua) {
 	let extent = (float) luaL_checknumber(lua, 2);
 	let meshData = CreatePlaneMeshAssetData(extent);
 	let id = w.db.CreateObject(name);
-	w.gfx.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
+	w.mesh.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
 	FreeAssetData(meshData);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
@@ -326,8 +326,8 @@ static int l_attach_rendermesh_to(lua_State* lua) {
 	let mesh = check_obj(lua, ObjectTag::MESH_ASSET, 2);
 	let material = check_obj(lua, ObjectTag::MATERIAL_ASSET, 3);
 	let shadow = lua_check_boolean_opt(lua, 4, true);
-	let pMesh = w.gfx.GetMesh(mesh.id);
-	let pMaterial = w.gfx.GetMaterial(material.id);
+	let pMesh = w.mesh.GetMesh(mesh.id);
+	let pMaterial = w.mat.GetMaterial(material.id);
 	RenderMeshData rmd { pMesh, pMaterial, shadow };	
 	let result = w.gfx.AddMeshRenderer(obj.id, rmd);
 	lua_pushboolean(lua, result);

@@ -2,8 +2,9 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #include "Material.h"
-#include "Graphics.h"
 #include "Texture.h"
+#include "World.h"
+
 #include <ini.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
@@ -101,7 +102,7 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const M
 		for (auto it = 0u; it < pData->TextureCount; ++it) {
 			let name = reader.ReadString();
 			let path = reader.ReadString();
-			let texture = pGraphics->FindTexture(path);
+			let texture = pGraphics->GetWorld()->GetTextureRegistry()->FindTexture(path);
 			if (texture == nullptr)
 				return false;
 
@@ -111,9 +112,9 @@ bool MaterialPass::TryLoad(Graphics* pGraphics, class Material* pCaller, const M
 	}
 
 
-	let nameStr = pGraphics->GetAssets()->GetName(pCaller->ID()).GetString();
-	let pDevice = pGraphics->GetDevice();
-	let pSwapChain = pGraphics->GetSwapChain();
+	let nameStr = pGraphics->GetWorld()->db.GetName(pCaller->ID()).GetString();
+	let pDevice = pGraphics->GetDisplay()->GetDevice();
+	let pSwapChain = pGraphics->GetDisplay()->GetSwapChain();
 
 	PipelineStateCreateInfo Args;
 	auto& PSODesc = Args.PSODesc;
@@ -215,8 +216,39 @@ bool MaterialPass::TryUnload(Graphics* pGraphics) {
 bool MaterialPass::Bind(Graphics* pGraphics) {
 	if (!IsLoaded())
 		return false;
-	let pContext = pGraphics->GetContext();
+	let pContext = pGraphics->GetDisplay()->GetContext();
 	pContext->SetPipelineState(pMaterialPipelineState);
 	pContext->CommitShaderResources(pMaterialResourceBinding, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 	return true;
+}
+
+
+MaterialRegistry::MaterialRegistry(World* aWorld) : pWorld(aWorld) {
+}
+
+MaterialRegistry::~MaterialRegistry() {
+}
+
+Material* MaterialRegistry::LoadMaterial(ObjectID id, const MaterialAssetData* pData) {
+	let idOkay =
+		pWorld->GetAssetDatabase()->IsValid(id) &&
+		!materials.Contains(id);
+	if (!idOkay)
+		return nullptr;
+
+	let result = NewObjectComponent<Material>(id);
+	if (!result->TryLoad(pWorld->GetGraphics(), pData)) {
+		FreeObjectComponent(result);
+		return nullptr;
+	}
+
+	let bAdded = materials.TryAppendObject(id, result);
+	CHECK_ASSERT(bAdded);
+
+	pWorld->GetGraphics()->AddRenderPasses(result);
+	return result;
+}
+
+Material* MaterialRegistry::FindMaterial(Name path) {
+	return GetMaterial(pWorld->GetAssetDatabase()->FindAsset(path));
 }

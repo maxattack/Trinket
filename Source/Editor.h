@@ -15,10 +15,12 @@
 #include "imgui_impl_sdl.h"
 
 
+class Display;
 class World;
 
 class Editor {
 private:
+	Display* pDisplay;
 	World* pWorld;
 
 	ImGuiImplDiligent impl;
@@ -30,7 +32,7 @@ private:
 
 public:
 
-	Editor(World* aWorld);
+	Editor(Display *aDisplay, World* aWorld);
 	~Editor();
 
 	void HandleEvent(const SDL_Event& Event);

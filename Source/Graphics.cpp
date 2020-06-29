@@ -9,22 +9,22 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "Math.h"
+#include "World.h"
 
 
-Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel) 
+Graphics::Graphics(Display* aDisplay, World* aWorld) 
 	: pDisplay(aDisplay)
-	, pSkel(aSkel)
-	, pAssets(aSkel->GetAssets())
-	, pScene(aSkel->GetScene())
+	, pWorld(aWorld)
 	, pov{ RPose(ForceInit::Default), 60.f, 0.01f, 100000.f }
 	, lightDirection(0, -1, 0)
 {
-	pAssets->AddListener(this);
-	pScene->AddListener(this);
+	pWorld->db.AddListener(this);
+	pWorld->scene.AddListener(this);
+	pWorld->skel.AddListener(this);
 
-	let pDevice = GetDevice();
-	let pSwapChain = GetSwapChain();
-	let pContext = GetContext();
+	let pDevice = pDisplay->GetDevice();
+	let pSwapChain = pDisplay->GetSwapChain();
+	let pContext = pDisplay->GetContext();
 	let pEngineFactory = pDisplay->GetEngineFactory();
 
 	// create the "shader source" (just use surface filesystem hook for now)
@@ -217,8 +217,9 @@ Graphics::Graphics(Display* aDisplay, SkelRegistry* aSkel)
 }
 
 Graphics::~Graphics() {
-	pAssets->RemoveListener(this);
-	pScene->RemoveListener(this);
+	pWorld->db.RemoveListener(this);
+	pWorld->scene.RemoveListener(this);
+	pWorld->skel.RemoveListener(this);
 }
 
 void Graphics::Database_WillReleaseAsset(AssetDatabase* caller, ObjectID id) {
@@ -237,61 +238,15 @@ void Graphics::Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectI
 	// TODO
 }
 
-Material* Graphics::LoadMaterial(ObjectID id, const MaterialAssetData* pData) {
-	let idOkay = 
-		pAssets->IsValid(id) && 
-		!materials.Contains(id);
-	if (!idOkay)
-		return nullptr;
-
-	let result = NewObjectComponent<Material>(id);
-	if (!result->TryLoad(this, pData)) {
-		FreeObjectComponent(result);
-		return nullptr;
-	}
-
-	let bAdded = materials.TryAppendObject(id, result);
-	CHECK_ASSERT(bAdded);
-
-	for (int it = 0; it < result->NumPasses(); ++it)
-		passes.push_back(RenderPass{ result, it, 0 });
-
-	return result;
-}
-
-ITexture* Graphics::LoadTexture(ObjectID id, const TextureAssetData* pData) {
-	let idOkay = 
-		pAssets->IsValid(id) && 
-		!textures.Contains(id);
-	if (!idOkay)
-		return nullptr;
-
-	auto result = LoadTextureHandleFromAsset(pDisplay, pData);
-	if (!result)
-		return nullptr;
-
-	let bAdded = textures.TryAppendObject(id, result);
-	CHECK_ASSERT(bAdded);
-
-	return result;
-}
-
-Mesh* Graphics::AddMesh(ObjectID id) {
-	let idOkay =
-		pAssets->IsValid(id) &&
-		!meshes.Contains(id);
-	if (!idOkay)
-		return nullptr;
-
-	let result = NewObjectComponent<Mesh>(id);
-	meshes.TryAppendObject(id, result);
-	return result;
+void Graphics::AddRenderPasses(Material* pMaterial) {
+	for (int it = 0; it < pMaterial->NumPasses(); ++it)
+		passes.push_back(RenderPass{ pMaterial, it, 0 });
 }
 
 bool Graphics::AddMeshRenderer(ObjectID id, const RenderMeshData& data) {
 
 	// check refs
-	if (!pScene->IsValid(id))
+	if (!pWorld->scene.IsValid(id))
 		return false;
 
 	if (data.pMesh == nullptr)
@@ -336,9 +291,9 @@ void Graphics::DrawDebugLine(const vec4& color, const vec3& start, const vec3& e
 }
 
 void Graphics::Draw() {
-	let pDevice = GetDevice();
-	let pSwapChain = GetSwapChain();
-	let pContext = GetContext();
+	let pDevice = pDisplay->GetDevice();
+	let pSwapChain = pDisplay->GetSwapChain();
+	let pContext = pDisplay->GetContext();
 
 	const auto& DevCaps = pDevice->GetDeviceCaps();
 	const auto& NDCAttribs = DevCaps.GetNDCAttribs();
@@ -352,7 +307,7 @@ void Graphics::Draw() {
 	for(auto it=0u; it<items.size(); ++it)
 	{
 		let& item = items[it];
-		let pHierarchy = pScene->GetSublevelHierarchyFor(item.id);
+		let pHierarchy = pWorld->scene.GetSublevelHierarchyFor(item.id);
 		let pPose = pHierarchy->GetScenePose(item.id);
 		matrices[it] = pPose->ToMatrix();
 	}

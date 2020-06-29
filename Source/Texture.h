@@ -2,10 +2,11 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #pragma once
-#include "Display.h"
-#include "Object.h"
-#include "Math.h"
 #include "AssetData.h"
+#include "Display.h"
+#include "ObjectPool.h"
+#include "Math.h"
+#include "Name.h"
 
 // TODO:
 // New Data Fields: Compression, Clamp/Wrap, Filters, MipMaps, Channels
@@ -24,3 +25,22 @@ struct TextureAssetData : AssetDataHeader {
 
 TextureAssetData* ImportTextureAssetDataFromSource(const char* configPath);
 RefCntAutoPtr<ITexture> LoadTextureHandleFromAsset(Display* pDisplay, const TextureAssetData* pData);
+
+class World;
+
+class TextureRegistry {
+public:
+
+	TextureRegistry(World* aWorld);
+	~TextureRegistry();
+
+	bool HasTexture(ObjectID id) { return textures.Contains(id); }
+	ITexture* LoadTexture(ObjectID id, const TextureAssetData* pData);
+	ITexture* GetTexture(ObjectID id) { let pRef = textures.TryGetComponent<1>(id); return pRef ? *pRef : nullptr; }
+	ITexture* FindTexture(Name path);
+
+private:
+	World* pWorld;
+	ObjectPool<RefCntAutoPtr<ITexture>> textures;
+
+};

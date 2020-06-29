@@ -2,7 +2,7 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #include "Mesh.h"
-#include "Graphics.h"
+#include "World.h"
 
 #include <ini.h>
 #include <EASTL/string.h>
@@ -490,7 +490,7 @@ bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic, const MeshAssetData* pAsset,
 		BufferData buf;
 		buf.pData = pVertices;
 		buf.DataSize = vertexByteCount;
-		gfx->GetDevice()->CreateBuffer(VBD, &buf, &pVertexBuffer);
+		gfx->GetDisplay()->GetDevice()->CreateBuffer(VBD, &buf, &pVertexBuffer);
 	}
 
 	if (gpuIndexCount > 0) {
@@ -503,7 +503,7 @@ bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic, const MeshAssetData* pAsset,
 		BufferData buf;
 		buf.pData = pIndices;
 		buf.DataSize = indexByteCount;
-		gfx->GetDevice()->CreateBuffer(IBD, &buf, &pIndexBuffer);
+		gfx->GetDisplay()->GetDevice()->CreateBuffer(IBD, &buf, &pIndexBuffer);
 	}
 	
 	return true;
@@ -519,19 +519,39 @@ void SubMesh::DoDraw(Graphics* gfx) {
 
 	uint32 offset = 0;
 	IBuffer* pBuffers[]{ pVertexBuffer };
-	gfx->GetContext()->SetVertexBuffers(0, 1, pBuffers, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
+	let pContext = gfx->GetDisplay()->GetContext();
+	pContext->SetVertexBuffers(0, 1, pBuffers, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
 	if (pIndexBuffer != nullptr) {
-		gfx->GetContext()->SetIndexBuffer(pIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+		pContext->SetIndexBuffer(pIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 		DrawIndexedAttribs draw;
 		draw.IndexType = VT_UINT32;
 		draw.NumIndices = gpuIndexCount;
 		#if _DEBUG
 		draw.Flags = DRAW_FLAG_VERIFY_ALL;
 		#endif
-		gfx->GetContext()->DrawIndexed(draw);
+		pContext->DrawIndexed(draw);
 	} else {
 		DrawAttribs draw;
 		draw.NumVertices = gpuVertexCount;
-		gfx->GetContext()->Draw(draw);
+		pContext->Draw(draw);
 	}
+}
+
+
+
+
+Mesh* MeshRegistry::AddMesh(ObjectID id) {
+	let idOkay =
+		pWorld->db.IsValid(id) &&
+		!meshes.Contains(id);
+	if (!idOkay)
+		return nullptr;
+
+	let result = NewObjectComponent<Mesh>(id);
+	meshes.TryAppendObject(id, result);
+	return result;
+}
+
+Mesh* MeshRegistry::FindMesh(Name path) { 
+	return GetMesh(pWorld->db.FindAsset(path)); 
 }

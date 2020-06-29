@@ -2,10 +2,10 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #pragma once
-#include "Name.h"
-#include "Object.h"
-#include "Display.h"
 #include "AssetData.h"
+#include "Display.h"
+#include "Name.h"
+#include "ObjectPool.h"
 
 
 struct MaterialAssetData : AssetDataHeader {
@@ -61,5 +61,25 @@ public:
 	bool IsLoaded() const { return defaultMaterialPass.IsLoaded(); }
 	bool TryLoad(Graphics* pGraphics, const MaterialAssetData* pData) { return defaultMaterialPass.TryLoad(pGraphics, this, pData, 0); }
 	bool TryUnload(Graphics* pGraphics) { return defaultMaterialPass.TryUnload(pGraphics); }
+
+};
+
+class World;
+
+class MaterialRegistry {
+public:
+
+	MaterialRegistry(World* aWorld);
+	~MaterialRegistry();
+
+	bool HasMaterial(ObjectID id) { return materials.Contains(id); }
+	Material* LoadMaterial(ObjectID id, const MaterialAssetData* pData);
+	Material* GetMaterial(ObjectID id) { return DerefPP(materials.TryGetComponent<1>(id)); }
+	Material* FindMaterial(Name path);
+
+private:
+
+	World* pWorld;
+	ObjectPool<StrongRef<Material>> materials;
 
 };

@@ -2,6 +2,7 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #include "Skeleton.h"
+#include "World.h"
 
 //------------------------------------------------------------------------------------------
 // Helper Functions
@@ -101,21 +102,19 @@ void Skeleton::ResetRestPoses() {
 //------------------------------------------------------------------------------------------
 // Skeleton Registry
 
-SkelRegistry::SkelRegistry(AssetDatabase* aAssets, Scene* aScene) 
-	: pAssets(aAssets)
-	, pScene(aScene)
+SkelRegistry::SkelRegistry(World* aWorld) : pWorld(aWorld)
 {
-	pAssets->AddListener(this);
-	pScene->AddListener(this);
+	pWorld->GetAssetDatabase()->AddListener(this);
+	pWorld->GetScene()->AddListener(this);
 }
 
 SkelRegistry::~SkelRegistry() {
-	pAssets->RemoveListener(this);
-	pScene->RemoveListener(this);
+	pWorld->GetAssetDatabase()->RemoveListener(this);
+	pWorld->GetScene()->RemoveListener(this);
 }
 
 SkelAsset* SkelRegistry::CreateSkeletonAsset(Name name) {
-	let id = pAssets->CreateObject(name);
+	let id = pWorld->GetAssetDatabase()->CreateObject(name);
 	let result = NewObjectComponent<SkelAsset>(id);
 	assets.TryAppendObject(id, result);
 	return result;
@@ -126,7 +125,7 @@ SkelAsset* SkelRegistry::GetSkeletonAsset(ObjectID id) {
 }
 
 Skeleton* SkelRegistry::AttachSkeletonTo(ObjectID id, SkelAsset* skel) {
-	let earlyOut = instances.Contains(id) || !pScene->IsValid(id);
+	let earlyOut = instances.Contains(id) || !pWorld->GetScene()->IsValid(id);
 	if (earlyOut)
 		return nullptr;
 
@@ -140,11 +139,12 @@ Skeleton* SkelRegistry::GetSkeletonFor(ObjectID id) {
 }
 
 bool SkelRegistry::TryAttachSocketTo(ObjectID id, Skeleton* skel, int16 jointIdx, const HPose& pose) {
+	let pScene = pWorld->GetScene();
 	let statusOK = !sockets.Contains(id) && pScene->IsValid(id);
 	if (!statusOK && sockets.TryAppendObject(id, Socket { skel, pose, jointIdx }))
 		return false;
 
-	let pHierarchy = GetScene()->GetSublevelHierarchyFor(id);
+	let pHierarchy = pScene->GetSublevelHierarchyFor(id);
 	pHierarchy->SetMask(id, PoseMask(true, true, true));
 	return true;
 }
@@ -156,6 +156,7 @@ bool SkelRegistry::TryReleaseScoket(ObjectID id) {
 void SkelRegistry::Update() {
 	
 	// update sockets
+	let pScene = pWorld->GetScene();
 	let pSocketIDs = sockets.GetComponentData<0>();
 	let pSockets = sockets.GetComponentData<1>();
 	let nSockets = sockets.Count();

@@ -1,8 +1,9 @@
 // Trinket Game Engine
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
-#include "Physics.h"
 #include "ObjectHandle.h"
+#include "Physics.h"
+#include "World.h"
 
 #include <PxPhysicsAPI.h>
 
@@ -12,10 +13,8 @@ static PxDefaultErrorCallback gDefaultErrorCallback;
 static PxDefaultAllocator gDefaultAllocatorCallback;
 static PxDefaultCpuDispatcher* gDispatcher = nullptr;
 
-Physics::Physics(AssetDatabase* aAssets, Scene* aScene)
-	: pAssets(aAssets)
-	, pScene(aScene)
-{
+PhysicsRuntime::PhysicsRuntime(World* aWorld) : pWorld(aWorld) {
+
 	pFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocatorCallback, gDefaultErrorCallback);
 	CHECK_ASSERT(pFoundation != nullptr);
 
@@ -41,7 +40,7 @@ Physics::Physics(AssetDatabase* aAssets, Scene* aScene)
 	pDefaultMaterial = pPhysics->createMaterial(0.5f, 0.5f, 0.5f);
 }
 
-Physics::~Physics() {
+PhysicsRuntime::~PhysicsRuntime() {
 	if (pDefaultScene)
 		pDefaultScene->release();
 	if (pDefaultMaterial)
@@ -58,14 +57,15 @@ Physics::~Physics() {
 		pFoundation->release();
 }
 
-void Physics::TryAddGroundPlane() {
+void PhysicsRuntime::TryAddGroundPlane() {
 	if (!pGroundPlane) {
 		pGroundPlane = PxCreatePlane(*pPhysics, PxPlane(0, 1, 0, 0), *pDefaultMaterial);
 		pDefaultScene->addActor(*pGroundPlane);
 	}
 }
 
-bool Physics::TryAttachRigidbodyTo(ObjectID id) {
+bool PhysicsRuntime::TryAttachRigidbodyTo(ObjectID id) {
+	let pScene = pWorld->GetScene();
 	CHECK_ASSERT(pScene->IsValid(id));
 	if (rigidBodies.Contains(id))
 		return false;
@@ -81,7 +81,7 @@ bool Physics::TryAttachRigidbodyTo(ObjectID id) {
 	return true;
 }
 
-bool Physics::TryAttachBoxTo(ObjectID id, float extent, float density) {
+bool PhysicsRuntime::TryAttachBoxTo(ObjectID id, float extent, float density) {
 	let ppRigidbody = rigidBodies.TryGetComponent<C_BODY>(id);
 	if (!ppRigidbody)
 		return false;
@@ -96,7 +96,9 @@ bool Physics::TryAttachBoxTo(ObjectID id, float extent, float density) {
 	return true;
 }
 
-void Physics::Tick(float dt) {
+void PhysicsRuntime::Tick(float dt) {
+	let pScene = pWorld->GetScene();
+
 	timeAccum += dt;
 
 	int numFixedTicks = 0;

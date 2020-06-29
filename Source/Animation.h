@@ -43,15 +43,14 @@ private:
 
 };
 
+class World;
+
 // Animation runtime is the root of the animation system.
 class AnimationRuntime : ISkelRegistryListener {
 public:
 
-	AnimationRuntime(SkelRegistry* aRegistry);
+	AnimationRuntime(World* aWorld);
 	~AnimationRuntime();
-
-	AssetDatabase* GetAssets() const { return pRegistry->GetAssets(); }
-	Scene* GetScene() const { return pRegistry->GetScene(); }
 
 
 	CharacterRig* CreateCharacterRig(SkelAsset* skel);
@@ -59,7 +58,7 @@ public:
 
 private:
 
-	SkelRegistry* pRegistry;
+	World* pWorld;
 	ObjectPool<StrongRef<CharacterRig>> rigs;
 	ObjectPool<StrongRef<Animator>> animators;
 

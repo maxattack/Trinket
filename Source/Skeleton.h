@@ -2,11 +2,10 @@
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
 #pragma once
-#include "Math.h"
-#include "Object.h"
 #include "Assets.h"
-#include "Scene.h"
 #include "Listener.h"
+#include "Math.h"
+#include "Scene.h"
 
 // Only need 16-bits to index a skeleton
 typedef int16 skel_idx_t;
@@ -76,14 +75,15 @@ public:
 	virtual void Skeleton_WillReleaseSkelAsset(class SkelRegistry* Caller, ObjectID id) = 0;
 };
 
+class World;
+
 class SkelRegistry : IAssetListener, ISceneListener {
 public:
 
-	SkelRegistry(AssetDatabase* aAssets, Scene* aScene);
+	SkelRegistry(World* aWorld);
 	~SkelRegistry();
 
-	AssetDatabase* GetAssets() const { return pAssets; }
-	Scene* GetScene() const { return pScene; }
+	World* GetWorld() const { return pWorld; }
 
 	void AddListener(ISkelRegistryListener* listener) { listeners.TryAdd(listener); }
 	void RemoveListener(ISkelRegistryListener* listener) { listeners.TryRemove_Swap(listener); }
@@ -103,8 +103,7 @@ public:
 private:
 
 	ListenerList<ISkelRegistryListener> listeners;
-	AssetDatabase* pAssets;
-	Scene* pScene;
+	World* pWorld;
 
 	struct Socket {
 		Skeleton* pSkeleton;
