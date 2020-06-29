@@ -27,8 +27,11 @@ struct RealTimestamp {
 	int32 operator-(RealTimestamp rhs) const { return ticks - rhs.ticks; }
 };
 
+class Display;
+
 class Input {
 private:
+	Display* pDisplay;
 	SDL_GameController* pGamepad = nullptr;
 	// TODO secondary gamepads?
 
@@ -42,7 +45,7 @@ private:
 
 public:
 
-	Input();
+	Input(Display* aDisplay);
 
 	// Realtime:
 	RealTimestamp GetTicks() const { return ticks; }
@@ -71,7 +74,9 @@ public:
 	vec2 GetStickR() const { return vec2(GetStickRX(), GetStickRY()); }
 
 	// Gamepad Buttons:
-	// TODO
+	bool IsMousePressed() const;
+	ivec2 GetMousePosition() const;
+	ivec2 GetMouseMovement() const;
 
 	void ResetTime();
 
@@ -79,4 +84,6 @@ public:
 	void Update();
 
 private:
+	ivec2 prevMousePosition = ivec2(0,0);
+	vec2 mouseMovement = vec2(0,0);
 };

@@ -46,7 +46,8 @@ public:
 	ISwapChain* GetSwapChain() { return pSwapChain; }
 
 	float GetAspect() const { let& SCD = pSwapChain->GetDesc(); return float(SCD.Width) / float(SCD.Height); }
-	
+	ivec2 GetScreenSize() const;
+
 	bool IsMultisampling() const { return MSAA_Count > 1; }
 	int GetMultisampleCount() const { return MSAA_Count; }
 

@@ -15,8 +15,20 @@ void GraphicsDebugMessageCallback(
 }
 
 Display::Display(const char* windowName) {
+
+	SDL_Rect rect;
+	SDL_GetDisplayBounds(0, &rect);
+
+	// split the difference between my laptop and pc haha
+	int w = 1920;
+	int h = 1080;
+	if (rect.w == 1920) {
+		w = 1280;
+		h = 720;
+	}
+
 	let windowFlags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
-	pWindow = SDL_CreateWindow(windowName, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, windowFlags);
+	pWindow = SDL_CreateWindow(windowName, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, windowFlags);
 	CHECK_ASSERT(pWindow != nullptr);
 	HWND hwnd = GetActiveWindow(); // TODO: way to get this from pWindow?
 
@@ -56,6 +68,12 @@ Display::~Display() {
 	if (pContext)
 		pContext->Flush();
 	SDL_DestroyWindow(pWindow);
+}
+
+ivec2 Display::GetScreenSize() const {
+	ivec2 result;
+	SDL_GetWindowSize(pWindow, &result.x, &result.y);
+	return result;
 }
 
 void Display::HandleEvent(const SDL_Event& ev) {

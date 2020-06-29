@@ -50,8 +50,10 @@ void Editor::ShowOutliner() {
 
 	using namespace std;
 
+	let ss = pDisplay->GetScreenSize();
+
 	ImGui::SetNextWindowPos(ImVec2(25, 25), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(400, 680), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(ss.x/5, ss.y-50), ImGuiCond_FirstUseEver);
 	ImGuiWindowFlags outlinerFlags(ImGuiWindowFlags_MenuBar);
 	ImGui::Begin("Outliner", nullptr, outlinerFlags);
 
@@ -170,10 +172,13 @@ void Editor::ShowOutliner() {
 
 
 void Editor::ShowInspector() {
-	let pScene = &(pWorld->scene);
+	let pScene = pWorld->GetScene();
 
-	ImGui::SetNextWindowPos(ImVec2(1920 - 25 - 400, 25), ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(400, 680), ImGuiCond_FirstUseEver);
+	let ss = pDisplay->GetScreenSize();
+	let w = ss.x / 5;
+
+	ImGui::SetNextWindowPos(ImVec2(ss.x - 25 - w, 25), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(w, ss.y - 50), ImGuiCond_FirstUseEver);
 
 	auto toDelete = OBJECT_NIL;
 

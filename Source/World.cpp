@@ -1,7 +1,8 @@
 #include "World.h"
 
 World::World(Display* aDisplay)
-	: tex(this)
+	: input(aDisplay)
+	, tex(this)
 	, mat(this)
 	, mesh(this)
 	, skel(this)

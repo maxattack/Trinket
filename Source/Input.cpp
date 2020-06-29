@@ -1,9 +1,10 @@
 // Trinket Game Engine
 // (C) 2020 Max Kaufmann <max.kaufmann@gmail.com>
 
+#include "Display.h"
 #include "Input.h"
 
-Input::Input() {
+Input::Input(Display* aDisplay) : pDisplay(aDisplay) {
 
 	pGamepad = SDL_GameControllerOpen(0);
 
@@ -31,31 +32,55 @@ static float PreprocessAxis(SDL_GameController* ctrl, SDL_GameControllerAxis axi
 };
 
 float Input::GetStickLX() const {
-	return PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_LEFTX);
+	let keys = SDL_GetKeyboardState(nullptr);
+	let kbx = keys[SDL_SCANCODE_D] - keys[SDL_SCANCODE_A];
+	return kbx + PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_LEFTX);
 }
 
 float Input::GetStickLY() const {
-	return -PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_LEFTY);
+	let keys = SDL_GetKeyboardState(nullptr);
+	let kby = keys[SDL_SCANCODE_W] - keys[SDL_SCANCODE_S];
+	return kby - PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_LEFTY);
 }
 
 float Input::GetStickRX() const {
-	return PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_RIGHTX);
+	let delta = IsMousePressed() ? 0.001f * mouseMovement.x : 0.f;
+	return delta + PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_RIGHTX);
 }
 
 float Input::GetStickRY() const {
-	return -PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_RIGHTY);
+	let delta = IsMousePressed() ? -0.001f * mouseMovement.y : 0.f;
+	return delta + PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_RIGHTY);
 }
 
 float Input::GetTriggerValueL() const {
-	return PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+	let keys = SDL_GetKeyboardState(nullptr);
+	return keys[SDL_SCANCODE_Q] + PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_TRIGGERLEFT);
 }
 
 float Input::GetTriggerValueR() const {
-	return PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+	let keys = SDL_GetKeyboardState(nullptr);
+	return keys[SDL_SCANCODE_E] + PreprocessAxis(pGamepad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+}
+
+bool Input::IsMousePressed() const {
+	let mask = SDL_GetMouseState(nullptr, nullptr);
+	return (mask & SDL_BUTTON_LEFT) != 0;
+}
+
+ivec2 Input::GetMousePosition() const {
+	ivec2 result;
+	SDL_GetMouseState(&result.x, &result.y);
+	return result;
+}
+
+ivec2 Input::GetMouseMovement() const {
+	ivec2 result;
+	SDL_GetRelativeMouseState(&result.x, &result.y);
+	return result;
 }
 
 void Input::HandleEvent(const SDL_Event& ev) {
-
 }
 
 void Input::ResetTime() {
@@ -74,5 +99,14 @@ void Input::Update() {
 
 	deltaTime = nextTime - time;
 	time = nextTime;
+
+	let mousePosition = GetMousePosition();
+	mouseMovement = vec2(mousePosition - prevMousePosition) / deltaTime;
+	prevMousePosition = mousePosition;
+	if (IsMousePressed()) {
+		let center = ivec2(0.5f * vec2(pDisplay->GetScreenSize()));
+		SDL_WarpMouseInWindow(pDisplay->GetWindow(), center.x, center.y);	
+		prevMousePosition = center;
+	}
 }
 
