@@ -23,6 +23,12 @@ trinket.add_ground_plane()
 local mecha = trinket.create_object("mecha")
 trinket.attach_rendermesh_to(mecha, mesh_mecha, mat_mecha)
 
+-- place capsule in scene
+local mesh_capsule = trinket.create_capsule_mesh("capsule", 0.5, 0.25)
+local capsule = trinket.create_object("capsule")
+trinket.attach_rendermesh_to(capsule, mesh_capsule, mat_surface)
+trinket.set_position(capsule, 2, 1, 0)
+
 -- scatter boxes
 
 function rand_range(u, v) 

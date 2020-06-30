@@ -54,6 +54,8 @@ struct MeshAssetData : AssetDataHeader {
 };
 
 MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath);
+
+// TODO: Convert to MeshPlotter Methods
 MeshAssetData* CreateCubeMeshAssetData(float extent);
 MeshAssetData* CreatePlaneMeshAssetData(float extent);
 
@@ -73,10 +75,10 @@ public:
 	IBuffer* GetVertexBuffer() { return pVertexBuffer; }
 	IBuffer* GetIndexBuffer() { return pIndexBuffer; }
 
-	bool TryLoad(Graphics* gfx, bool dynamic, const MeshAssetData* pAsset, uint32 idx);
-	bool TryRelease(Graphics* gfx);
-	void DoDraw(Graphics* gfx);
-
+	bool TryLoad(IRenderDevice* pDevice, bool dynamic, const MeshAssetData* pAsset, uint32 idx);
+	bool TryLoad(IRenderDevice* pDevice, bool dynamic, uint nverts, uint nidx, const MeshVertex* pVertices, const uint32* pIndices);
+	bool TryRelease(IRenderDevice* pDevice);
+	void DoDraw(IDeviceContext* pContext);
 
 };
 
@@ -90,8 +92,9 @@ public:
 	
 	// more of an aspirational interface, here, lol
 	int GetSubmeshCount() const { return 1; }
-	SubMesh& GetSubmesh(int idx) { return defaultSubmesh; }
-	bool TryLoad(Graphics* gfx, bool dynamic, const MeshAssetData* pAsset) { return defaultSubmesh.TryLoad(gfx, dynamic, pAsset, 0); }
+	SubMesh* GetSubmesh(int idx) { return idx == 0 ? &defaultSubmesh : nullptr; }
+	bool TryLoad(IRenderDevice* pDevice, bool dynamic, const MeshAssetData* pAsset) { return defaultSubmesh.TryLoad(pDevice, dynamic, pAsset, 0); }
+	bool TryLoad(IRenderDevice* pDevice, bool dynamic, uint nverts, uint nidx, const MeshVertex* pVertices, const uint32* pIndices) { return defaultSubmesh.TryLoad(pDevice, dynamic, nverts, nidx, pVertices, pIndices); }
 
 };
 
@@ -112,3 +115,27 @@ private:
 	ObjectPool<StrongRef<Mesh>> meshes;
 
 };
+
+
+
+struct MeshPlotter {
+
+	// The scripting engine will keep a scratchpad plotter around
+	// so that we don't have to keep reallocating memory when loading
+	// procedural meshes from lua.
+
+	// Usage:
+	// (1) "Plot" Data
+	// (2) Save to Asset Data or else Load/Update Directly
+
+	eastl::vector<uint32> indices;
+	eastl::vector<MeshVertex> vertices;
+
+	void PlotCapsule(float halfHeight, float radius, uint radiusSampleCount, uint capRingCount, bool plotIndex = true);
+	void SetVertexColor(uint32 color);
+
+	MeshAssetData* CreateAssetData();
+	bool TryLoad(IRenderDevice *pDevice, Mesh* pMesh, int subIdx = 0);
+	bool TryUpdate(IRenderDevice *pDevice, Mesh* pMesh, int subIdx = 0);
+};
+

@@ -27,9 +27,12 @@
 #define INVALID_INDEX (-1)
 enum class ForceInit { Default };
 
+typedef unsigned int uint;
+
 #define GLM_FORCE_LEFT_HANDED 1
 #define GLM_FORCE_INTRINSICS 1
 #include <glm/fwd.hpp>
+
 typedef glm::int8    int8;
 typedef glm::int16   int16;
 typedef glm::int32   int32;

@@ -17,6 +17,8 @@
 
 #include <glm/gtx/norm.hpp>
 
+static_assert(sizeof(uint) == 4);
+
 
 const LayoutElement MeshVertexLayoutElems[4]{
 	LayoutElement{ 0, 0, 3, VT_FLOAT32, false },
@@ -468,7 +470,7 @@ void MeshAssetData::SetColor(vec4 c) {
 }
 
 
-bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic, const MeshAssetData* pAsset, uint32 idx) {
+bool SubMesh::TryLoad(IRenderDevice* pDevice, bool aDynamic, const MeshAssetData* pAsset, uint32 idx) {
 	if (IsLoaded())
 		return false;
 
@@ -476,12 +478,21 @@ bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic, const MeshAssetData* pAsset,
 	let pVertices = pAsset->VertexData(idx);
 	let pIndices = pAsset->IndexData(idx);
 
-	gpuVertexCount = pSubmesh->VertexCount;
-	gpuIndexCount = pSubmesh->IndexCount;
+	return TryLoad(pDevice, aDynamic, pSubmesh->VertexCount, pSubmesh->IndexCount, pVertices, pIndices);
+}
+
+bool SubMesh::TryLoad(IRenderDevice* pDevice, bool aDynamic, uint nverts, uint nidx, const MeshVertex* pVertices, const uint32* pIndices) {
+	if (IsLoaded())
+		return false;
+
+	CHECK_ASSERT(nidx % 3 == 0);
+
+	gpuVertexCount = nverts;
+	gpuIndexCount = nidx;
 	dynamic = aDynamic;
 
 	{
-		let vertexByteCount = uint32(sizeof(MeshVertex) * gpuVertexCount);
+		let vertexByteCount = uint32(sizeof(MeshVertex) * nverts);
 		BufferDesc VBD;
 		VBD.Name = "VB_Mesh"; // get name for mesh?
 		VBD.Usage = aDynamic ? USAGE_DEFAULT : USAGE_STATIC;
@@ -490,11 +501,11 @@ bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic, const MeshAssetData* pAsset,
 		BufferData buf;
 		buf.pData = pVertices;
 		buf.DataSize = vertexByteCount;
-		gfx->GetDisplay()->GetDevice()->CreateBuffer(VBD, &buf, &pVertexBuffer);
+		pDevice->CreateBuffer(VBD, &buf, &pVertexBuffer);
 	}
 
-	if (gpuIndexCount > 0) {
-		let indexByteCount = uint32(sizeof(uint32) * gpuIndexCount);
+	if (nidx > 0) {
+		let indexByteCount = uint32(sizeof(uint32) * nidx);
 		BufferDesc IBD;
 		IBD.Name = "IB_Mesh";
 		IBD.Usage = USAGE_STATIC;
@@ -503,23 +514,23 @@ bool SubMesh::TryLoad(Graphics* gfx, bool aDynamic, const MeshAssetData* pAsset,
 		BufferData buf;
 		buf.pData = pIndices;
 		buf.DataSize = indexByteCount;
-		gfx->GetDisplay()->GetDevice()->CreateBuffer(IBD, &buf, &pIndexBuffer);
+		pDevice->CreateBuffer(IBD, &buf, &pIndexBuffer);
 	}
 	
+
+
 	return true;
 }
 
-bool SubMesh::TryRelease(Graphics* gfx) {
-	// TODO
+bool SubMesh::TryRelease(IRenderDevice* pDevice) {
 	return false;
 }
 
-void SubMesh::DoDraw(Graphics* gfx) {
+void SubMesh::DoDraw(IDeviceContext* pContext) {
 	CHECK_ASSERT(IsLoaded());
 
 	uint32 offset = 0;
 	IBuffer* pBuffers[]{ pVertexBuffer };
-	let pContext = gfx->GetDisplay()->GetContext();
 	pContext->SetVertexBuffers(0, 1, pBuffers, &offset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
 	if (pIndexBuffer != nullptr) {
 		pContext->SetIndexBuffer(pIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -537,9 +548,6 @@ void SubMesh::DoDraw(Graphics* gfx) {
 	}
 }
 
-
-
-
 Mesh* MeshRegistry::AddMesh(ObjectID id) {
 	let idOkay =
 		pWorld->db.IsValid(id) &&
@@ -554,4 +562,122 @@ Mesh* MeshRegistry::AddMesh(ObjectID id) {
 
 Mesh* MeshRegistry::FindMesh(Name path) { 
 	return GetMesh(pWorld->db.FindAsset(path)); 
+}
+
+
+
+
+void MeshPlotter::PlotCapsule(float halfHeight, float radius, uint radiusSampleCount, uint capRingCount, bool plotIndex) {
+	radiusSampleCount = glm::max(3u, radiusSampleCount);
+	capRingCount = glm::max(1u, capRingCount);
+
+	let vertsPerRing = radiusSampleCount + 1u; // an extra last-vert to overlap the first-vert
+	let vertRingCount = capRingCount + 1u;     // extra vert-ring for the apex
+	let vertsPerCap = vertsPerRing * vertRingCount;
+	let numVerts = vertsPerCap + vertsPerCap;
+	vertices.resize(numVerts);
+	MeshVertex* pVert = vertices.data();
+
+	let unorm = 1.f / (vertRingCount - 1.f);
+	let vnorm = 1.f / (vertsPerRing - 1.f);
+	let pi = float(M_PI);
+	
+	let topCenter = vec3(0.f, halfHeight, 0.f);
+	let upBasis = vec3(0.f, 1.f, 0.f);
+	for(uint i=0; i<vertRingCount; ++i) {
+		let u = i * unorm;
+		let angle = (1.f - u) * 0.5f * pi; // (1-u) - swing from vertical -> horizontal
+		let sin = sinf(angle);
+		let cos = cosf(angle);
+		for(uint j=0; j<vertsPerRing; ++j) 
+		{
+			let v = j * vnorm;
+			let yaw = v * 2.f * pi;
+			let horizontalBasis = vec3(cosf(yaw), 0.f, sinf(yaw));
+			let normal = cos * horizontalBasis + sin * upBasis;
+			pVert->position = topCenter + radius * normal;
+			pVert->normal = normal;
+			pVert->uv = vec2(v, 0.5f * u);
+			pVert->color = 0xffffffff;
+			++pVert;
+		}
+	}
+
+	let bottomCenter = vec3(0.f, -halfHeight, 0.f);
+	let downBasis = vec3(0.f, -1.f, 0.f);
+	for(uint i=0; i<capRingCount; ++i) {
+		let u = i * unorm;
+		let angle = u * 0.5f * pi;
+		let sin = sinf(angle);
+		let cos = cosf(angle);
+		for(uint j=0; j<vertsPerRing; ++j) 
+		{
+			let v = j * vnorm;
+			let yaw = v * 2.f * pi;
+			let horizontalBasis = vec3(cosf(yaw), 0.f, sinf(yaw));
+			let normal = cos * horizontalBasis + sin * downBasis;
+			pVert->position = bottomCenter + radius * normal;
+			pVert->normal = normal;
+			pVert->uv = vec2(v, 0.5f * u);
+			pVert->color = 0xffffffff;
+			++pVert;
+		}
+	}
+
+	if (!plotIndex)
+		return;
+
+	let trianglesPerStrip = 2u * radiusSampleCount;
+	let trianglesPerCap = capRingCount * trianglesPerStrip;
+	let numTriangles = 2 * trianglesPerCap + trianglesPerStrip; // an extra strip for the middle
+	let numIndices = 3 * numTriangles;
+	indices.resize(numIndices);
+	uint32* pIndex = indices.data();
+	uint currRingStart = 0;
+
+	const uint iterCount = capRingCount + 1 + capRingCount;
+	for(uint i=0; i<iterCount; ++i) {
+		let nextRingStart = currRingStart + radiusSampleCount;
+		for(uint j=0; j<radiusSampleCount; ++j) {
+			pIndex[0] = currRingStart + j;
+			pIndex[1] = currRingStart + j+1;
+			pIndex[2] = nextRingStart + j+1;
+			pIndex[3] = currRingStart + j;
+			pIndex[4] = nextRingStart + j+1;
+			pIndex[5] = nextRingStart + j;
+			pIndex += 6;
+		}
+		currRingStart = nextRingStart;
+	}
+
+}
+
+MeshAssetData* MeshPlotter::CreateAssetData() {
+	let sz = 
+		sizeof(MeshAssetData) + 
+		sizeof(SubmeshHeader) + 
+		sizeof(MeshVertex) * vertices.size() + 
+		sizeof(uint32) * indices.size();
+	let result = AllocAssetData<MeshAssetData>(sz);
+	result->SubmeshCount = 1;
+	AssetDataWriter writer (result, sizeof(MeshAssetData));
+	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
+	pSubmesh->IndexCount = (uint32) indices.size();
+	pSubmesh->VertexCount = (uint32) vertices.size();
+	pSubmesh->VertexOffset = writer.GetOffset();
+	writer.WriteData(vertices.data(), sizeof(MeshVertex) * vertices.size());
+	pSubmesh->IndexOffset = writer.GetOffset();
+	writer.WriteData(indices.data(), sizeof(uint32) * indices.size());
+	return result;
+}
+
+void MeshPlotter::SetVertexColor(uint32 color) {
+	for(auto& it : vertices)
+		it.color = color;
+}
+
+bool MeshPlotter::TryLoad(IRenderDevice *pDevice, Mesh* pMesh, int subIdx) {
+	return pMesh
+		->GetSubmesh(subIdx)
+		->TryLoad(pDevice, false, (uint) vertices.size(), (uint) indices.size(), vertices.data(), indices.data());
 }

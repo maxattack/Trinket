@@ -17,7 +17,8 @@ inline static ScriptVM* GetVM(lua_State* lua) {
 
 #define SCRIPT_PREAMBLE              \
 	let vm = GetVM(lua);             \
-	World& w = *vm->GetWorld();  
+	World& w = *vm->GetWorld();      \
+	Display& display = *w.gfx.GetDisplay();
 
 #define SCENE_OBJ_METHOD_PREAMBLE                          \
 	SCRIPT_PREAMBLE                                        \
@@ -287,7 +288,7 @@ static int l_import_mesh(lua_State* lua) {
 	// TODO: default materials?
 	let id = existingID.IsNil() ? w.db.CreateObject(sourcePath) : existingID;
 	let mesh = w.mesh.AddMesh(id);
-	mesh->TryLoad(&w.gfx, false, pAsset);
+	mesh->TryLoad(display.GetDevice(), false, pAsset);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
 }
@@ -303,7 +304,7 @@ static int l_create_cube_mesh(lua_State* lua) {
 		pVertices[it].color = 0xff00ffff; // ABGR
 	
 	let id = w.db.CreateObject(name);
-	w.mesh.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
+	w.mesh.AddMesh(id)->TryLoad(display.GetDevice(), false, meshData);
 	FreeAssetData(meshData);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
@@ -315,8 +316,26 @@ static int l_create_plane_mesh(lua_State* lua) {
 	let extent = (float) luaL_checknumber(lua, 2);
 	let meshData = CreatePlaneMeshAssetData(extent);
 	let id = w.db.CreateObject(name);
-	w.mesh.AddMesh(id)->TryLoad(&w.gfx, false, meshData);
+	w.mesh.AddMesh(id)->TryLoad(display.GetDevice(), false, meshData);
 	FreeAssetData(meshData);
+	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
+	return 1;
+}
+
+static int l_create_capsule_mesh(lua_State* lua) {
+	SCRIPT_PREAMBLE;
+	let pPlotter = vm->GetPlotter();
+	let nargs = lua_gettop(lua);
+	let name = luaL_checkstring(lua, 1);
+	let halfHeight = (float) luaL_checknumber(lua, 2);
+	let radius = (float) luaL_checknumber(lua, 3);
+	let radiusSamples = nargs >= 4 ? luaL_checkinteger(lua, 4) : 64;
+	let capRings = nargs >= 5 ? luaL_checkinteger(lua, 5) : 16;
+	pPlotter->PlotCapsule(halfHeight, radius, (uint) radiusSamples, (uint) capRings);
+	pPlotter->SetVertexColor(0xffffaaff);
+	let id = w.db.CreateObject(name);
+	let pMesh = w.mesh.AddMesh(id);
+	pPlotter->TryLoad(w.gfx.GetDisplay()->GetDevice(), pMesh);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
 }
@@ -477,6 +496,7 @@ static const struct luaL_Reg lib_trinket[] = {
 	{ "import_mesh",          l_import_mesh          },
 	{ "create_cube_mesh",     l_create_cube_mesh     },
 	{ "create_plane_mesh",    l_create_plane_mesh    },
+	{ "create_capsule_mesh",  l_create_capsule_mesh  },
 	{ "attach_rendermesh_to", l_attach_rendermesh_to },
 
 	// physics functions

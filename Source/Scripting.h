@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Math.h"
+#include "Mesh.h"
 
 class World; 
 
@@ -10,6 +11,7 @@ class ScriptVM {
 private:
 	World* pWorld;
 	struct lua_State* lua;
+	MeshPlotter plotter;
 
 public:
 
@@ -17,6 +19,7 @@ public:
 	~ScriptVM();
 
 	World* GetWorld() { return pWorld; }
+	MeshPlotter* GetPlotter() { return &plotter; }
 
 	void RunScript(const char* path);
 	void Update();
