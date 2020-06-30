@@ -55,10 +55,6 @@ struct MeshAssetData : AssetDataHeader {
 
 MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath);
 
-// TODO: Convert to MeshPlotter Methods
-MeshAssetData* CreateCubeMeshAssetData(float extent);
-MeshAssetData* CreatePlaneMeshAssetData(float extent);
-
 class SubMesh {
 private:
 	RefCntAutoPtr<IBuffer> pVertexBuffer;
@@ -132,6 +128,8 @@ struct MeshPlotter {
 	eastl::vector<MeshVertex> vertices;
 
 	void PlotCapsule(float halfHeight, float radius, uint radiusSampleCount, uint capRingCount, bool plotIndex = true);
+	void PlotCube(float extent);
+	void PlotPlane(float extent);
 	void SetVertexColor(uint32 color);
 
 	MeshAssetData* CreateAssetData();

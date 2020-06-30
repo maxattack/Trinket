@@ -304,138 +304,6 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 	return result;
 }
 
-MeshAssetData* CreateCubeMeshAssetData(float extent) {
-	
-	// Cube vertices
-	//
-	//      (-1,+1,+1)________________(+1,+1,+1)
-	//               /|              /|
-	//              / |             / |
-	//             /  |            /  |
-	//            /   |           /   |
-	//(-1,-1,+1) /____|__________/(+1,-1,+1)
-	//           |    |__________|____|
-	//           |   /(-1,+1,-1) |    /(+1,+1,-1)
-	//           |  /            |   /
-	//           | /             |  /
-	//           |/              | /
-	//           /_______________|/
-	//        (-1,-1,-1)       (+1,-1,-1)
-	//
-	
-	struct CubeVertex {
-		vec3 pos;
-		vec2 uv;
-		vec3 normal;
-	};
-
-	static const CubeVertex verts[] {
-		{vec3(-1,-1,-1), vec2(0,1), vec3(0, 0, -1)},
-		{vec3(-1,+1,-1), vec2(0,0), vec3(0, 0, -1)},
-		{vec3(+1,+1,-1), vec2(1,0), vec3(0, 0, -1)},
-		{vec3(+1,-1,-1), vec2(1,1), vec3(0, 0, -1)},
-	
-		{vec3(-1,-1,-1), vec2(0,1), vec3(0, -1, 0)},
-		{vec3(-1,-1,+1), vec2(0,0), vec3(0, -1, 0)},
-		{vec3(+1,-1,+1), vec2(1,0), vec3(0, -1, 0)},
-		{vec3(+1,-1,-1), vec2(1,1), vec3(0, -1, 0)},
-	
-		{vec3(+1,-1,-1), vec2(0,1), vec3(+1, 0, 0)},
-		{vec3(+1,-1,+1), vec2(1,1), vec3(+1, 0, 0)},
-		{vec3(+1,+1,+1), vec2(1,0), vec3(+1, 0, 0)},
-		{vec3(+1,+1,-1), vec2(0,0), vec3(+1, 0, 0)},
-	
-		{vec3(+1,+1,-1), vec2(0,1), vec3(0, +1, 0)},
-		{vec3(+1,+1,+1), vec2(0,0), vec3(0, +1, 0)},
-		{vec3(-1,+1,+1), vec2(1,0), vec3(0, +1, 0)},
-		{vec3(-1,+1,-1), vec2(1,1), vec3(0, +1, 0)},
-	
-		{vec3(-1,+1,-1), vec2(1,0), vec3(-1, 0, 0)},
-		{vec3(-1,+1,+1), vec2(0,0), vec3(-1, 0, 0)},
-		{vec3(-1,-1,+1), vec2(0,1), vec3(-1, 0, 0)},
-		{vec3(-1,-1,-1), vec2(1,1), vec3(-1, 0, 0)},
-	
-		{vec3(-1,-1,+1), vec2(1,1), vec3(0, 0, +1)},
-		{vec3(+1,-1,+1), vec2(0,1), vec3(0, 0, +1)},
-		{vec3(+1,+1,+1), vec2(0,0), vec3(0, 0, +1)},
-		{vec3(-1,+1,+1), vec2(1,0), vec3(0, 0, +1)}
-	};
-	
-	static const uint32 indices[] {
-		2,0,1,    2,3,0,
-		4,6,5,    4,7,6,
-		8,10,9,   8,11,10,
-		12,14,13, 12,15,14,
-		16,18,17, 16,19,18,
-		20,21,22, 20,22,23
-	};
-	
-	let sz = 
-		sizeof(MeshAssetData) + 
-		sizeof(SubmeshHeader) + 
-		sizeof(MeshVertex) * _countof(verts) + 
-		sizeof(uint32) * _countof(indices);
-	
-	let result = AllocAssetData<MeshAssetData>(sz);
-	result->SubmeshCount = 1;
-
-	AssetDataWriter writer (result, sizeof(MeshAssetData));
-	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
-	pSubmesh->IndexCount = _countof(indices);
-	pSubmesh->VertexCount = _countof(verts);
-	pSubmesh->VertexOffset = writer.GetOffset();
-
-	for(int it=0; it<24; ++it) {
-		MeshVertex p;
-		p.position = extent * verts[it].pos;
-		p.uv = verts[it].uv;
-		p.normal = verts[it].normal;
-		p.color = 0xffffffff;
-		writer.WriteValue(p);
-	}
-
-	pSubmesh->IndexOffset = writer.GetOffset();
-	writer.WriteData(indices, sizeof(indices));
-
-	return result;
-}
-
-MeshAssetData* CreatePlaneMeshAssetData(float extent) {
-
-	let sz = 
-		sizeof(MeshAssetData) + 
-		sizeof(SubmeshHeader) + 
-		sizeof(MeshVertex) * 4 + 
-		sizeof(uint32) * 6;
-	
-	let result = AllocAssetData<MeshAssetData>(sz);
-	result->SubmeshCount = 1;
-	AssetDataWriter writer (result, sizeof(MeshAssetData));
-	
-	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
-	pSubmesh->IndexCount = 6;
-	pSubmesh->VertexCount = 4;
-	pSubmesh->VertexOffset = writer.GetOffset();
-
-	MeshVertex vertices[4] {
-		{ vec3(-extent, -extent, 0), vec3(0, 0, 1), vec2(0, 0), 0xffffffff },
-		{ vec3( extent, -extent, 0), vec3(0, 0, 1), vec2(1, 0), 0xffffffff },
-		{ vec3( extent,  extent, 0), vec3(0, 0, 1), vec2(1, 1), 0xffffffff },
-		{ vec3(-extent,  extent, 0), vec3(0, 0, 1), vec2(0, 1), 0xffffffff },
-	};
-	writer.WriteData(vertices, 4 * sizeof(MeshVertex));
-
-	pSubmesh->IndexOffset = writer.GetOffset();
-	uint32 indices[6] { 
-		0,1,2, 
-		3,0,2 
-	};
-
-	writer.WriteData(indices, 6 * sizeof(uint32));
-
-	return result;
-}
-
 void MeshAssetData::ReverseWindingOrder() {
 	for(uint32 sub=0; sub<SubmeshCount; ++sub) {
 		let pSubmesh = SubmeshData(sub);
@@ -652,12 +520,114 @@ void MeshPlotter::PlotCapsule(float halfHeight, float radius, uint radiusSampleC
 
 }
 
+void MeshPlotter::PlotCube(float extent) {
+
+	// Cube vertices
+	//
+	//      (-1,+1,+1)________________(+1,+1,+1)
+	//               /|              /|
+	//              / |             / |
+	//             /  |            /  |
+	//            /   |           /   |
+	//(-1,-1,+1) /____|__________/(+1,-1,+1)
+	//           |    |__________|____|
+	//           |   /(-1,+1,-1) |    /(+1,+1,-1)
+	//           |  /            |   /
+	//           | /             |  /
+	//           |/              | /
+	//           /_______________|/
+	//        (-1,-1,-1)       (+1,-1,-1)
+	//
+	
+	struct CubeVertex {
+		vec3 pos;
+		vec2 uv;
+		vec3 normal;
+	};
+
+	static const CubeVertex verts[] {
+		{vec3(-1,-1,-1), vec2(0,1), vec3(0, 0, -1)},
+		{vec3(-1,+1,-1), vec2(0,0), vec3(0, 0, -1)},
+		{vec3(+1,+1,-1), vec2(1,0), vec3(0, 0, -1)},
+		{vec3(+1,-1,-1), vec2(1,1), vec3(0, 0, -1)},
+	
+		{vec3(-1,-1,-1), vec2(0,1), vec3(0, -1, 0)},
+		{vec3(-1,-1,+1), vec2(0,0), vec3(0, -1, 0)},
+		{vec3(+1,-1,+1), vec2(1,0), vec3(0, -1, 0)},
+		{vec3(+1,-1,-1), vec2(1,1), vec3(0, -1, 0)},
+	
+		{vec3(+1,-1,-1), vec2(0,1), vec3(+1, 0, 0)},
+		{vec3(+1,-1,+1), vec2(1,1), vec3(+1, 0, 0)},
+		{vec3(+1,+1,+1), vec2(1,0), vec3(+1, 0, 0)},
+		{vec3(+1,+1,-1), vec2(0,0), vec3(+1, 0, 0)},
+	
+		{vec3(+1,+1,-1), vec2(0,1), vec3(0, +1, 0)},
+		{vec3(+1,+1,+1), vec2(0,0), vec3(0, +1, 0)},
+		{vec3(-1,+1,+1), vec2(1,0), vec3(0, +1, 0)},
+		{vec3(-1,+1,-1), vec2(1,1), vec3(0, +1, 0)},
+	
+		{vec3(-1,+1,-1), vec2(1,0), vec3(-1, 0, 0)},
+		{vec3(-1,+1,+1), vec2(0,0), vec3(-1, 0, 0)},
+		{vec3(-1,-1,+1), vec2(0,1), vec3(-1, 0, 0)},
+		{vec3(-1,-1,-1), vec2(1,1), vec3(-1, 0, 0)},
+	
+		{vec3(-1,-1,+1), vec2(1,1), vec3(0, 0, +1)},
+		{vec3(+1,-1,+1), vec2(0,1), vec3(0, 0, +1)},
+		{vec3(+1,+1,+1), vec2(0,0), vec3(0, 0, +1)},
+		{vec3(-1,+1,+1), vec2(1,0), vec3(0, 0, +1)}
+	};
+	
+	static const uint32 idx[] {
+		2,0,1,    2,3,0,
+		4,6,5,    4,7,6,
+		8,10,9,   8,11,10,
+		12,14,13, 12,15,14,
+		16,18,17, 16,19,18,
+		20,21,22, 20,22,23
+	};
+	
+	vertices.resize(_countof(verts));
+
+	auto pVert = vertices.data();
+	for(int it=0; it<24; ++it) {
+		pVert->position = extent * verts[it].pos;
+		pVert->uv = verts[it].uv;
+		pVert->normal = verts[it].normal;
+		pVert->color = 0xffffffff;
+		++pVert;
+	}
+
+	indices.resize(_countof(idx));
+	memcpy(indices.data(), idx, sizeof(idx));
+}
+
+void MeshPlotter::PlotPlane(float extent) {
+	MeshVertex verts[4] {
+		{ vec3(-extent, -extent, 0), vec3(0, 0, 1), vec2(0, 0), 0xffffffff },
+		{ vec3( extent, -extent, 0), vec3(0, 0, 1), vec2(1, 0), 0xffffffff },
+		{ vec3( extent,  extent, 0), vec3(0, 0, 1), vec2(1, 1), 0xffffffff },
+		{ vec3(-extent,  extent, 0), vec3(0, 0, 1), vec2(0, 1), 0xffffffff },
+	};
+
+	static const uint32 idx[6] { 
+		0,1,2, 
+		3,0,2 
+	};
+
+	vertices.resize(4);
+	indices.resize(6);
+	memcpy(vertices.data(), verts, sizeof(verts));
+	memcpy(indices.data(), idx, sizeof(idx));
+}
+
+
 MeshAssetData* MeshPlotter::CreateAssetData() {
-	let sz = 
+	let sz = uint(
 		sizeof(MeshAssetData) + 
 		sizeof(SubmeshHeader) + 
 		sizeof(MeshVertex) * vertices.size() + 
-		sizeof(uint32) * indices.size();
+		sizeof(uint32) * indices.size()
+	);
 	let result = AllocAssetData<MeshAssetData>(sz);
 	result->SubmeshCount = 1;
 	AssetDataWriter writer (result, sizeof(MeshAssetData));

@@ -297,15 +297,13 @@ static int l_create_cube_mesh(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
 	let extent = (float) luaL_checknumber(lua, 2);
-	let meshData = CreateCubeMeshAssetData(extent);
-	let pVertices = meshData->VertexData(0);
-	let nverts = meshData->SubmeshData(0)->VertexCount;
-	for(auto it=0u; it<nverts; ++it)
-		pVertices[it].color = 0xff00ffff; // ABGR
-	
+	let pPlotter = vm->GetPlotter();
+	pPlotter->PlotCube(extent);
+	pPlotter->SetVertexColor(0xff00ffff);
+
 	let id = w.db.CreateObject(name);
-	w.mesh.AddMesh(id)->TryLoad(display.GetDevice(), false, meshData);
-	FreeAssetData(meshData);
+	let pMesh = w.mesh.AddMesh(id);
+	pPlotter->TryLoad(display.GetDevice(), pMesh);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
 }
@@ -314,10 +312,11 @@ static int l_create_plane_mesh(lua_State* lua) {
 	SCRIPT_PREAMBLE;
 	let name = luaL_checkstring(lua, 1);
 	let extent = (float) luaL_checknumber(lua, 2);
-	let meshData = CreatePlaneMeshAssetData(extent);
+	let pPlotter = vm->GetPlotter();
+	pPlotter->PlotPlane(extent);
 	let id = w.db.CreateObject(name);
-	w.mesh.AddMesh(id)->TryLoad(display.GetDevice(), false, meshData);
-	FreeAssetData(meshData);
+	let pMesh = w.mesh.AddMesh(id);
+	pPlotter->TryLoad(display.GetDevice(), pMesh);
 	lua_pushobj(lua, ObjectTag::MESH_ASSET, id);
 	return 1;
 }
