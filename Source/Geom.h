@@ -7,7 +7,7 @@ struct AABB {
 
 	AABB() noexcept {}
 	AABB(ForceInit) noexcept : center(0,0,0), extent(0,0,0) {}
-	AABB(const vec3& aCenter, const vec3& aExtent) : center(aCenter), extent(aExtent) {}
+	AABB(const vec3& aCenter, const vec3& aExtent) noexcept : center(aCenter), extent(aExtent) {}
 
 	vec3 Min() const { return center - extent; }
 	vec3 Max() const { return center + extent; }
