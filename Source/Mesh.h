@@ -4,6 +4,7 @@
 #pragma once
 #include "AssetData.h"
 #include "Display.h"
+#include "Geom.h"
 #include "Math.h"
 #include "Name.h"
 #include "ObjectPool.h"
@@ -23,6 +24,8 @@ struct MeshVertex {
 	};
 };
 
+AABB ComputeMeshAABB(MeshVertex* pVertices, uint count);
+
 extern const LayoutElement MeshVertexLayoutElems[4];
 
 struct SubmeshHeader {
@@ -34,7 +37,7 @@ struct SubmeshHeader {
 
 struct MeshAssetData : AssetDataHeader {
 	static const schema_t SCHEMA = SCHEMA_MESH;
-
+	AABB BoundingBox;
 	uint32 SubmeshCount;
 
 	// Const Getters
@@ -80,6 +83,7 @@ public:
 
 class Mesh : public ObjectComponent {
 private:
+	AABB boundingBox;
 	SubMesh defaultSubmesh;
 
 public:
@@ -87,11 +91,14 @@ public:
 	Mesh(ObjectID aID) noexcept : ObjectComponent(aID) {}
 	
 	// more of an aspirational interface, here, lol
+	AABB GetBoundingBox() const { return boundingBox; }
 	int GetSubmeshCount() const { return 1; }
 	SubMesh* GetSubmesh(int idx) { return idx == 0 ? &defaultSubmesh : nullptr; }
-	bool TryLoad(IRenderDevice* pDevice, bool dynamic, const MeshAssetData* pAsset) { return defaultSubmesh.TryLoad(pDevice, dynamic, pAsset, 0); }
-	bool TryLoad(IRenderDevice* pDevice, bool dynamic, uint nverts, uint nidx, const MeshVertex* pVertices, const uint32* pIndices) { return defaultSubmesh.TryLoad(pDevice, dynamic, nverts, nidx, pVertices, pIndices); }
+	
+	bool TryLoad(IRenderDevice* pDevice, bool dynamic, const MeshAssetData* pAsset);
+	bool TryLoad(IRenderDevice* pDevice, bool dynamic, uint nverts, uint nidx, const MeshVertex* pVertices, const uint32* pIndices, const AABB& bbox);
 
+	void SetBoundingBox(const AABB& bbox) { boundingBox = bbox; }
 };
 
 class World;
@@ -133,7 +140,7 @@ struct MeshPlotter {
 	void SetVertexColor(uint32 color);
 
 	MeshAssetData* CreateAssetData();
-	bool TryLoad(IRenderDevice *pDevice, Mesh* pMesh, int subIdx = 0);
-	bool TryUpdate(IRenderDevice *pDevice, Mesh* pMesh, int subIdx = 0);
+	bool TryLoad(IRenderDevice *pDevice, Mesh* pMesh);
+	bool TryUpdate(IRenderDevice *pDevice, Mesh* pMesh);
 };
 

@@ -265,7 +265,10 @@ bool Graphics::AddMeshRenderer(ObjectID id, const RenderMeshData& data) {
 		if (pit->pMaterial == data.pMaterial)
 		{
 			for (uint16 submeshIdx = 0; submeshIdx < data.pMesh->GetSubmeshCount(); ++submeshIdx) 
+			{
 				items.insert(items.begin() + itemIdx, RenderItem { data.pMesh, id, submeshIdx, data.castsShadow });
+				itemBoundingBoxes.insert(itemBoundingBoxes.begin() + itemIdx, data.pMesh->GetBoundingBox());
+			}
 			pit->itemCount += data.pMesh->GetSubmeshCount();
 		}
 		itemIdx += pit->itemCount;

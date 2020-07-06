@@ -126,6 +126,7 @@ private:
 
 	eastl::vector<RenderPass> passes;
 	eastl::vector<RenderItem> items;
+	eastl::vector<AABB> itemBoundingBoxes;
 	eastl::vector<mat4> matrices;
 
 #if TRINKET_TEST

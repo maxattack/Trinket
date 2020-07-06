@@ -27,6 +27,14 @@ const LayoutElement MeshVertexLayoutElems[4]{
 	LayoutElement{ 3, 0, 4, VT_UINT8,   true }
 };
 
+AABB ComputeMeshAABB(MeshVertex* pVertices, uint count) {
+	CHECK_ASSERT(count > 0);
+	AABB result (pVertices[0].position);
+	for(uint it=1; it<count; ++it)
+		result = result.ExpandTo(pVertices[it].position);
+	return result;
+}
+
 MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 	using namespace eastl::literals::string_literals;
 	using namespace Assimp;
@@ -157,6 +165,8 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 			writer.WriteValue(face.mIndices[1]);
 			writer.WriteValue(face.mIndices[2]);
 		}
+
+		result->BoundingBox = ComputeMeshAABB(result->VertexData(0), result->SubmeshData(0)->VertexCount);
 
 		return result;
 
@@ -300,6 +310,8 @@ MeshAssetData* ImportMeshAssetDataFromSource(const char* configPath) {
 	
 	pSubmesh->IndexOffset = writer.GetOffset();
 	writer.WriteData(indices.data(), sizeof(uint32) * numIndices);
+	
+	result->BoundingBox = ComputeMeshAABB(result->VertexData(0), result->SubmeshData(0)->VertexCount);
 
 	return result;
 }
@@ -414,6 +426,20 @@ void SubMesh::DoDraw(IDeviceContext* pContext) {
 		draw.NumVertices = gpuVertexCount;
 		pContext->Draw(draw);
 	}
+}
+
+bool Mesh::TryLoad(IRenderDevice* pDevice, bool dynamic, const MeshAssetData* pAsset) { 
+	if (!defaultSubmesh.TryLoad(pDevice, dynamic, pAsset, 0))
+		return false;
+	boundingBox = pAsset->BoundingBox;
+	return true;
+}
+
+bool Mesh::TryLoad(IRenderDevice* pDevice, bool dynamic, uint nverts, uint nidx, const MeshVertex* pVertices, const uint32* pIndices, const AABB& bbox) { 
+	if (!defaultSubmesh.TryLoad(pDevice, dynamic, nverts, nidx, pVertices, pIndices))
+		return false;
+	boundingBox = bbox;
+	return true;
 }
 
 Mesh* MeshRegistry::AddMesh(ObjectID id) {
@@ -630,6 +656,8 @@ MeshAssetData* MeshPlotter::CreateAssetData() {
 	);
 	let result = AllocAssetData<MeshAssetData>(sz);
 	result->SubmeshCount = 1;
+	result->BoundingBox = ComputeMeshAABB(vertices.data(), (uint) vertices.size());
+
 	AssetDataWriter writer (result, sizeof(MeshAssetData));
 	auto pSubmesh = writer.PeekAndSeek<SubmeshHeader>();
 	pSubmesh->IndexCount = (uint32) indices.size();
@@ -646,8 +674,7 @@ void MeshPlotter::SetVertexColor(uint32 color) {
 		it.color = color;
 }
 
-bool MeshPlotter::TryLoad(IRenderDevice *pDevice, Mesh* pMesh, int subIdx) {
-	return pMesh
-		->GetSubmesh(subIdx)
-		->TryLoad(pDevice, false, (uint) vertices.size(), (uint) indices.size(), vertices.data(), indices.data());
+bool MeshPlotter::TryLoad(IRenderDevice *pDevice, Mesh* pMesh) {
+	let bbox = ComputeMeshAABB(vertices.data(), (uint) vertices.size());
+	return pMesh->TryLoad(pDevice, false, (uint) vertices.size(), (uint) indices.size(), vertices.data(), indices.data(), bbox);
 }
