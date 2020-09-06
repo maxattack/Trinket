@@ -267,7 +267,6 @@ bool Graphics::AddMeshRenderer(ObjectID id, const RenderMeshData& data) {
 			for (uint16 submeshIdx = 0; submeshIdx < data.pMesh->GetSubmeshCount(); ++submeshIdx) 
 			{
 				items.insert(items.begin() + itemIdx, RenderItem { data.pMesh, id, submeshIdx, data.castsShadow });
-				itemBoundingBoxes.insert(itemBoundingBoxes.begin() + itemIdx, data.pMesh->GetBoundingBox());
 			}
 			pit->itemCount += data.pMesh->GetSubmeshCount();
 		}
@@ -302,17 +301,18 @@ void Graphics::Draw() {
 	const auto& NDCAttribs = DevCaps.GetNDCAttribs();
 	const bool  IsGL = DevCaps.IsGLDevice();
 
-	// TODO: VIEWPORT CULLING
-
-	// get transforms
-	if (matrices.size() != items.size())
+	// get transforms, bounding boxes
+	if (matrices.size() < items.size()) {
 		matrices.resize(items.size());
-	for(auto it=0u; it<items.size(); ++it)
+		boundingBoxes.resize(items.size());
+	}
+	for(uint it=0; it<items.size(); ++it)
 	{
 		let& item = items[it];
 		let pHierarchy = pWorld->scene.GetSublevelHierarchyFor(item.id);
 		let pPose = pHierarchy->GetScenePose(item.id);
 		matrices[it] = pPose->ToMatrix();
+		boundingBoxes[it] = item.pMesh->GetBoundingBox().GetTransformed(matrices[it]);
 	}
 
 	// draw shadow map

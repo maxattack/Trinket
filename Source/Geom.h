@@ -81,6 +81,14 @@ struct AABB {
 		}
 	}
 
+	AABB GetTransformed(const mat4& xform) const {
+		vec3 corners[8];
+		GetCorners(corners);
+		for(int it=0; it<8; ++it)
+			corners[it] = xform * vec4(corners[it], 1.f);
+		return AABB(corners, 8);
+	}
+
 };
 
 struct Sphere {
@@ -132,3 +140,60 @@ struct Sphere {
 		return glm::distance2(Clamp(pos), pos);
 	}
 };
+
+struct Plane {
+	
+	union {
+		vec4 vec;
+		struct {
+			vec3 normal;
+			float distance;
+		};
+	};
+
+	Plane() noexcept {}
+	Plane(ForceInit) noexcept : normal(0,0,0), distance(0) {}
+	Plane(const vec4& aVec) noexcept : vec(aVec) {}
+	Plane(const vec3& aNormal, float aDistance) noexcept : normal(aNormal), distance(aDistance) {}
+	Plane(const vec3 aNormal, const vec3& pos) noexcept : normal(aNormal), distance(glm::dot(pos, aNormal)) {}
+
+	float DistanceTo(const vec3& pos) const {
+		let offset = pos - normal * distance;
+		return glm::dot(offset, normal);
+	}
+
+	vec3 ClosestPointTo(const vec3& pos) {
+		let ref = normal * distance;
+		let offset = pos - ref;
+		let dist = glm::dot(offset, normal);
+		return ref + offset - (dist * normal);
+	}
+
+	bool IsAbove(const vec3& pos) const {
+		return DistanceTo(pos) > 0.f;
+	}
+
+	bool IsBelow(const vec3& pos) const {
+		return DistanceTo(pos) <= 0.f;
+	}
+
+	Plane GetTransformedByWorldTransform(const mat4& xform) const {
+		return Plane(glm::inverseTranspose(xform) * vec);
+	}
+
+	Plane GetTransformedByInvTranspose(const mat4& invTranspose) const {
+		return Plane(invTranspose * vec);
+	}
+};
+
+struct FrustumParams {
+	float zNear;
+	float zFar;
+	float fovX;
+	float fovY;
+};
+
+struct FrustumPlanes {
+	Plane planes[6];
+};
+
